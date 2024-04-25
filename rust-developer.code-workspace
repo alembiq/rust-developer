@@ -6,5 +6,9 @@
     ],
 
     "settings": {
+        "rust-analyzer.linkedProjects": [
+            "./lesson02/Cargo.toml",
+            "./lesson01/Cargo.toml"
+        ]
     }
 }
