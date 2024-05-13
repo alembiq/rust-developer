@@ -1,9 +1,10 @@
 use slug::slugify;
 use std::env;
 use std::error::Error;
-use std::io;
+use std::io::{self, BufRead};
 
 fn main() {
+
     let args: Vec<String> = env::args().collect();
     if args.len() == 1 {
         println!(
@@ -12,9 +13,6 @@ fn main() {
         );
         return;
     };
-
-    // TODO use option & result
-
     let output: Result<String, Box<dyn Error>> = match &args[1][..] {
         "lowercase" => match user_string() {
             Ok(input) => convert_to_lower(&input),
@@ -40,13 +38,12 @@ fn main() {
             Ok(input) => convert_to_capitalised(&input),
             Err(_) => panic!("fck"),
         },
-        "csv" => todo!("trigger multiline input into table_print functionality"),
+        "csv" => print_table(user_csv()),
         _ => {
             eprintln!("Invalid transformation: {}", &args[1]);
             return;
         }
     };
-
     match output {
         Err(error) => eprintln!("{} failed with: {}", args[1], error),
         Ok(output) => println!("{} transformation successful: {}", args[1], output),
@@ -62,6 +59,27 @@ fn user_string() -> Result<String, Box<dyn Error>> {
     } else {
         Err("Failed to read line".into())
     }
+}
+
+fn user_csv() -> std::option::Option<String> {
+    println!("Enter a CSV to process: ");
+
+    // let mut input = String::new();
+    // io::stdin().read_to_string(&mut input).ok()?;
+    // let output: Option<String> = Some(input);
+    // return output
+
+    let mut output = String::new();
+    let stream = io::stdin();
+    for line in stream.lock().lines() {
+        let line = line.expect("Failed to read line");
+        if !validate_string(&line) {
+            break;
+        } else  {
+            output.push_str( &format!("{}\n",line));
+        }
+    }
+    Some(output)
 }
 
 // i would prefer to validate this in user_string, but i need to validate inside the convert functions...
@@ -117,4 +135,15 @@ fn convert_to_slug(input: &str) -> Result<String, Box<dyn Error>> {
     } else {
         Err("No valid string inserted".into())
     }
+}
+
+fn print_table<>(input: std::option::Option<String>) -> Result<String, Box<dyn Error>> {
+    println!("CSV input: \n{}",&input.expect("reason").to_string());
+    todo!("validation of cvs & printing as table")
+    // if validate_string(input) {
+        // let output = input.to_string();
+    //     Ok(output)
+    // } else {
+    //     Err("No valid string inserted".into())
+    // }
 }

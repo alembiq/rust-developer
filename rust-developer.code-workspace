@@ -6,10 +6,11 @@
     ],
 
     "settings": {
-        "rust-analyzer.linkedProjects": [
-            "./lesson02/Cargo.toml",
-            "./lesson01/Cargo.toml"
-        ],
+        // "rust-analyzer.linkedProjects": [
+        //     "./lesson05/Cargo.toml",
+        //     "./lesson02/Cargo.toml",
+        //     "./lesson01/Cargo.toml"
+        // ],
         "terminal.explorerKind": "external",
         "terminal.integrated.accessibleViewFocusOnCommandExecution": false,
         "terminal.sourceControlRepositoriesKind": "external",
