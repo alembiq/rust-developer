@@ -85,11 +85,11 @@ fn validate_string(input: &str) -> bool {
     !input.trim().is_empty()
 }
 fn validate_csv(input: &Option<String>) -> bool {
-    let binding = <Option<String> as Clone>::clone(&input).unwrap();
+    let binding = <Option<String> as Clone>::clone(input).unwrap();
     let mut rdr = csv::Reader::from_reader(binding.as_bytes());
-    for result in rdr.records() {
+    if let Some(result) = rdr.records().next() {
         match result {
-            Err(_) =>  return false,
+            Err(_) => return false,
             Ok(_) => return true,
         }
     }
@@ -149,8 +149,8 @@ fn convert_to_slug(input: &str) -> Result<String, Box<dyn Error>> {
 fn print_table(input: std::option::Option<String>) -> Result<String, Box<dyn Error>> {
     if validate_csv(&input) {
         let table = csv_to_table::from_reader(input.expect("REASON").as_bytes()).unwrap();
-        return Ok(table.to_string())
+        Ok(table.to_string())
     } else {
-        return Err("CSV invalid".into())
+        Err("CSV invalid".into())
     }
 }
