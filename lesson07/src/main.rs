@@ -5,53 +5,103 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self};
 
+//TODO receive_thread - read type of transformation, and string/file
+//TODO process_thread - receive and process data from receive_thread
+//TODO use std::mpsc:channel or flume
+
+//FIXME matching trasformation to action as function
+
 fn main() {
+    let ask_for_tranformation = String::from("What transformation do you need (lowercase/uppercase/no-space/slugify/reverse/capitalise/csv)?");
     let ask_for_string = String::from("What text should I transform?");
     let ask_for_file = String::from("What CSV file should I process?");
 
     let args: Vec<String> = env::args().collect();
     if args.len() == 1 {
         println!("let's go interactive");
+        loop {
+            let output = match user_input(&ask_for_tranformation) {
+                Ok(transformation) => match &*transformation {
+                    "lowercase" => match user_input(&ask_for_string) {
+                        Ok(input) => convert_to_lower(&input),
+                        Err(_) => panic!("fck"),
+                    },
+                    "uppercase" => match user_input(&ask_for_string) {
+                        Ok(input) => convert_to_upper(&input),
+                        Err(_) => panic!("fck"),
+                    },
+                    "no-space" => match user_input(&ask_for_string) {
+                        Ok(input) => convert_to_spaceless(&input),
+                        Err(_) => panic!("fck"),
+                    },
+                    "slugify" => match user_input(&ask_for_string) {
+                        Ok(input) => convert_to_slug(&input),
+                        Err(_) => panic!("fck"),
+                    },
+                    "reverse" => match user_input(&ask_for_string) {
+                        Ok(input) => convert_to_backwards(&input),
+                        Err(_) => panic!("fck"),
+                    },
+                    "capitalise" => match user_input(&ask_for_string) {
+                        Ok(input) => convert_to_capitalised(&input),
+                        Err(_) => panic!("fck"),
+                    },
+                    "csv" => match user_input(&ask_for_file) {
+                        Ok(input) => print_table(user_csv(&input)),
+                        Err(_) => panic!("fck"),
+                    },
+                    "" => {
+                        println!("No transformation requested, quiting");
+                        break;
+                    }
+                    _ => {
+                        println!("Invalid transformation: {}", &transformation);
+                        return;
+                    }
+                },
+                Err(_) => panic!("some error"),
+            };
+            match output {
+                Err(error) => eprintln!("{} failed with", error),
+                Ok(output) => println!("transformation successful:\n\n{}\n", output),
+            }
+        }
         return;
     };
     let output: Result<String, Box<dyn Error>> = match &args[1][..] {
-        "lowercase" => match user_input(ask_for_string) {
+        "lowercase" => match user_input(&ask_for_string) {
             Ok(input) => convert_to_lower(&input),
             Err(_) => panic!("fck"),
         },
-        "uppercase" => match user_input(ask_for_string) {
+        "uppercase" => match user_input(&ask_for_string) {
             Ok(input) => convert_to_upper(&input),
             Err(_) => panic!("fck"),
         },
-        "no-space" => match user_input(ask_for_string) {
+        "no-space" => match user_input(&ask_for_string) {
             Ok(input) => convert_to_spaceless(&input),
             Err(_) => panic!("fck"),
         },
-        "slugify" => match user_input(ask_for_string) {
+        "slugify" => match user_input(&ask_for_string) {
             Ok(input) => convert_to_slug(&input),
             Err(_) => panic!("fck"),
         },
-        "reverse" => match user_input(ask_for_string) {
+        "reverse" => match user_input(&ask_for_string) {
             Ok(input) => convert_to_backwards(&input),
             Err(_) => panic!("fck"),
         },
-        "capitalise" => match user_input(ask_for_string) {
+        "capitalise" => match user_input(&ask_for_string) {
             Ok(input) => convert_to_capitalised(&input),
             Err(_) => panic!("fck"),
         },
-        "csv" => match user_input(ask_for_file) {
+        "csv" => match user_input(&ask_for_file) {
             Ok(input) => print_table(user_csv(&input)),
             Err(_) => panic!("fck"),
         },
-
-        "help" => {
+        _ => {
             println!(
                 "Usage: {} lowercase/uppercase/no-space/slugify/reverse/capitalise/csv",
                 args[0]
             );
-            return;
-        }
-        _ => {
             eprintln!("Invalid transformation: {}", &args[1]);
             return;
         }
@@ -62,7 +112,7 @@ fn main() {
     }
 }
 
-fn user_input(question: String) -> Result<String, Box<dyn Error>> {
+fn user_input(question: &String) -> Result<String, Box<dyn Error>> {
     println!("{} ", question);
     let mut input = String::new();
     if io::stdin().read_line(&mut input).is_ok() {
@@ -140,7 +190,6 @@ fn convert_to_backwards(input: &str) -> Result<String, Box<dyn Error>> {
 }
 fn convert_to_capitalised(input: &str) -> Result<String, Box<dyn Error>> {
     if validate_string(input) {
-        //i had no idea that i've used format! it ahead of time :)
         let output = format!("{}{}", &input[..1].to_string().to_uppercase(), &input[1..]);
         Ok(output)
     } else {
