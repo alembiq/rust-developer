@@ -9,7 +9,6 @@ use std::process;
 use std::sync::mpsc;
 use std::thread;
 
-//TODO create separate file for enum Operator
 enum Operations {
     Lowercase,
     Uppercase,
@@ -50,29 +49,23 @@ impl fmt::Display for Operations {
 
 fn main() {
     let ask_for_tranformation = String::from("What transformation do you need (lowercase/uppercase/no-space/slugify/reverse/capitalise/csv)?");
-    let ask_for_string = String::from("What text should I transform?");
-    let ask_for_file = String::from("What CSV file should I process?");
-    let (tx, rx) = mpsc::channel(); //FIXME WTF uz me to reklo ze doplnit T, druhy zavorky, nahradit zavorky ostrejma a pak umrelo
-
+    let (tx, rx) = mpsc::channel(); // mpsc::channel::() mpsc::channel::()() mpsc::channel::(T)() mpsc::channel::<T>()
     let args: Vec<String> = env::args().collect();
     if args.len() == 1 {
-        println!("let's go interactive");
-
+        println!("Let's go interactive!");
         let input_thread = thread::Builder::new().name("input_thread".into());
         let output_thread = thread::Builder::new().name("output_thread".into());
 
         let input_handle = input_thread
             .spawn(move || loop {
-                //TODO get Operation - valid or die
-                //TODO get Text or content of a File
                 match user_input(&ask_for_tranformation) {
                     Ok(transformation) => {
                         match Operations::from_str(&transformation) {
                             Ok(variant) => {
-                                //TODO adjust user_input to return text from input or file based on Operation
                                 let text = user_input(&variant.to_string());
                                 tx.send(transformation).unwrap();
                                 tx.send((text).expect("REASON")).unwrap();
+                                thread::sleep(std::time::Duration::from_secs(1));
                             }
                             Err(err) => {
                                 eprintln!("{}, exiting", err);
@@ -85,118 +78,86 @@ fn main() {
             })
             .unwrap();
 
-        //     let input = user_input(&ask_for_tranformation);
-        //     match &input {
-        //         Ok(transformation) => {
-        //             tx.send(input).unwrap()
-        //             // match transformation {
-        //             //     Operations => tx.send(transformation).unwrap(), // Send a message through the channel
-        //             // }
-        //         },
-        //         Err(_) => panic!("some error"),
-        //     }
         let output_handle = output_thread
-            .spawn(move || loop {
-                //TODO evaluate Operation and execute on Text
-                //TODO println! output
-                // for request in rx {
-                // println!("{}", request);
-                //         // let (command, input_str): (_, _) = request;
-                //         // match run(command, input_str) {
-                //         //     Err(e) => eprintln!("Procesing Error: {}", e),
-                //         //     Ok(transmuted_str) => println!("Transmutation result: \n{}", transmuted_str),
-                //         // };
-                // }
-                match rx.recv() {
-                    Err(err) => {
-                        eprintln!("OUTPUT[ERROR]: {}",err);
+            .spawn(move || {
+                let mut operation = String::new();
+                let mut text = String::new();
+                loop {
+                    if operation.len() > 1 && text.len() > 1 {
+                        println!("{} {}", operation, text);
+                        let output: Result<String, Box<dyn Error>> = match &*operation {
+                            "lowercase" => convert_to_lower(&text),
+                            "uppercase" => convert_to_upper(&text),
+                            "no-space" => convert_to_spaceless(&text),
+                            "slugify" => convert_to_slug(&text),
+                            "reverse" => convert_to_backwards(&text),
+                            "capitalise" => convert_to_capitalised(&text),
+                            "csv" => print_table(user_csv(&text)),
+                            &_ => {
+                                eprintln!("Invalid transformation: {}", operation);
+                                return;
+                            }
+                        };
+                        match output {
+                            Err(error) => eprintln!("{} failed with: {}", operation, error),
+                            Ok(output) => {
+                                println!("{} transformation successful:\n{}", operation, output)
+                            }
+                        }
+                        operation = "".to_string();
+                        text = "".to_string();
+                    } else if operation.is_empty() {
+                        match rx.recv() {
+                            Err(err) => {
+                                eprintln!("OUTPUT[ERROR]: {}", err);
+                            }
+                            Ok(input) => {
+                                operation = input;
+                            }
+                        };
+                    } else {
+                        match rx.recv() {
+                            Err(err) => {
+                                eprintln!("OUTPUT[ERROR]: {}", err);
+                            }
+                            Ok(input) => {
+                                text = input;
+                            }
+                        };
                     }
-                    Ok(msg) => {
-                        println!("OUTPUT: {}", msg);
-                    }
-                };
-                // }
+                }
             })
             .unwrap();
 
         input_handle.join().unwrap();
         output_handle.join().unwrap();
-
-    //     loop {
-    //         let output = match user_input(&ask_for_tranformation) {
-    //             Ok(transformation) => match &*transformation {
-    //                 "lowercase" => match user_input(&ask_for_string) {
-    //                     Ok(input) => convert_to_lower(&input),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "uppercase" => match user_input(&ask_for_string) {
-    //                     Ok(input) => convert_to_upper(&input),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "no-space" => match user_input(&ask_for_string) {
-    //                     Ok(input) => convert_to_spaceless(&input),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "slugify" => match user_input(&ask_for_string) {
-    //                     Ok(input) => convert_to_slug(&input),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "reverse" => match user_input(&ask_for_string) {
-    //                     Ok(input) => convert_to_backwards(&input),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "capitalise" => match user_input(&ask_for_string) {
-    //                     Ok(input) => convert_to_capitalised(&input),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "csv" => match user_input(&ask_for_file) {
-    //                     Ok(input) => print_table(user_csv(&input)),
-    //                     Err(_) => panic!("fck"),
-    //                 },
-    //                 "" => {
-    //                     println!("No transformation requested, quiting");
-    //                     break;
-    //                 }
-    //                 _ => {
-    //                     println!("Invalid transformation: {}", &transformation);
-    //                     return;
-    //                 }
-    //             },
-    //             Err(_) => panic!("some error"),
-    //         };
-    //         match output {
-    //             Err(error) => eprintln!("{} failed with", error),
-    //             Ok(output) => println!("transformation successful:\n\n{}\n", output),
-    //         }
-    //     }
-    //     return;
     } else {
         let output: Result<String, Box<dyn Error>> = match &args[1][..] {
-            "lowercase" => match user_input(&ask_for_string) {
+            "lowercase" => match user_input(&args[1]) {
                 Ok(input) => convert_to_lower(&input),
                 Err(_) => panic!("fck"),
             },
-            "uppercase" => match user_input(&ask_for_string) {
+            "uppercase" => match user_input(&args[1]) {
                 Ok(input) => convert_to_upper(&input),
                 Err(_) => panic!("fck"),
             },
-            "no-space" => match user_input(&ask_for_string) {
+            "no-space" => match user_input(&args[1]) {
                 Ok(input) => convert_to_spaceless(&input),
                 Err(_) => panic!("fck"),
             },
-            "slugify" => match user_input(&ask_for_string) {
+            "slugify" => match user_input(&args[1]) {
                 Ok(input) => convert_to_slug(&input),
                 Err(_) => panic!("fck"),
             },
-            "reverse" => match user_input(&ask_for_string) {
+            "reverse" => match user_input(&args[1]) {
                 Ok(input) => convert_to_backwards(&input),
                 Err(_) => panic!("fck"),
             },
-            "capitalise" => match user_input(&ask_for_string) {
+            "capitalise" => match user_input(&args[1]) {
                 Ok(input) => convert_to_capitalised(&input),
                 Err(_) => panic!("fck"),
             },
-            "csv" => match user_input(&ask_for_file) {
+            "csv" => match user_input(&args[1]) {
                 Ok(input) => print_table(user_csv(&input)),
                 Err(_) => panic!("fck"),
             },
@@ -216,8 +177,13 @@ fn main() {
     }
 }
 
-fn user_input(question: &String) -> Result<String, Box<dyn Error>> {
-    println!("{} ", question);
+fn user_input(operation: &String) -> Result<String, Box<dyn Error>> {
+    if operation == "csv" {
+        println!("What CSV file should I display? ");
+    } else {
+        println!("What text should I {}? ", operation);
+    }
+
     let mut input = String::new();
     if io::stdin().read_line(&mut input).is_ok() {
         input = input.trim().to_string();
@@ -244,10 +210,10 @@ fn print_table(input: std::option::Option<String>) -> Result<String, Box<dyn Err
     }
 }
 
-// i would prefer to validate this in user_input, but i need to validate inside the convert functions...
 fn validate_string(input: &str) -> bool {
     !input.trim().is_empty()
 }
+
 fn validate_csv(input: &Option<String>) -> bool {
     let binding = <Option<String> as Clone>::clone(input).unwrap();
     let mut rdr = csv::Reader::from_reader(binding.as_bytes());
