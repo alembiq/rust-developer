@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if command -v cargo  &> /dev/null
+then
+    cargo check && cargo clippy -- -D warnings
+      # cargo fmt # not available???
+      # cargo fix --allow-staged
+      # cargo test
+fi
