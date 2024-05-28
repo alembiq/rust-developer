@@ -95,7 +95,7 @@ fn client(address: &str) {
             } else if user_input.starts_with(".file") {
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
-                MessageType::File(filename.to_string(),read_file(user_input.to_string()))
+                MessageType::File(filename.to_string(), read_file(user_input.to_string()))
             } else if user_input.starts_with(".image") {
                 MessageType::Image(read_file(user_input.to_string()))
             } else {
@@ -129,31 +129,40 @@ fn listen_and_accept(address: &str) {
         clients.insert(addr, stream.try_clone().unwrap());
         let message = handle_client(clients.get(&addr).unwrap().try_clone().unwrap());
 
-
         match message {
-            MessageType::Text(text) => {println!(
-            "{} {text:?}",
-            std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()   );},
+            MessageType::Text(text) => {
+                println!(
+                    "{} {text:?}",
+                    std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
+                );
+            }
             MessageType::Image(image) => {
-                let timestamp: String = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs().to_string();
-                println!("{} saving: {}/{}.png",
+                let timestamp: String = std::time::UNIX_EPOCH
+                    .elapsed()
+                    .unwrap()
+                    .as_secs()
+                    .to_string();
+                println!(
+                    "{} saving: {}/{}.png",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
                     FOLDER_IMAGES,
                     timestamp
                 );
                 //TODO convert to png
-                fs::write(format!("{}/{}.png",FOLDER_IMAGES,timestamp), &image).expect("Could not write file");
-            },
-            MessageType::File (name,content) => {
-                println!("{} saving: {}/{}",
+                fs::write(format!("{}/{}.png", FOLDER_IMAGES, timestamp), &image)
+                    .expect("Could not write file");
+            }
+            MessageType::File(name, content) => {
+                println!(
+                    "{} saving: {}/{}",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
                     FOLDER_FILES,
                     name
                 );
-                fs::write(format!("{}/{}",FOLDER_FILES,name), content).expect("Could not write file");
-            },
+                fs::write(format!("{}/{}", FOLDER_FILES, name), content)
+                    .expect("Could not write file");
+            }
         }
-
 
         /* TODO based on a message type process
         Display a notification like Receiving image... or Receiving <filename> for incoming files.

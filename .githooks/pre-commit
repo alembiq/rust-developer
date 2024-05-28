@@ -2,8 +2,7 @@
 
 if command -v cargo  &> /dev/null
 then
-    cargo check && cargo clippy -- -D warnings
-      # cargo fmt # not available???
+    cargo check && cargo fmt && cargo clippy -- -D warnings
       # cargo fix --allow-staged
       # cargo test
 fi
