@@ -6,7 +6,7 @@ members = [
     "lesson05",
     "lesson07",
     "lesson09",
-    "lesson11/chat_library",
+    "lesson11/shared",
     "lesson11/client",
     "lesson11/server",
 ]

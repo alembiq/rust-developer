@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 use std::net::{IpAddr, TcpStream};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,4 +36,3 @@ pub fn outgoing_message(stream: &mut TcpStream, message: &MessageType) {
 pub fn is_valid_ip(ip: &str) -> bool {
     ip.parse::<IpAddr>().is_ok()
 }
-fn main() {}

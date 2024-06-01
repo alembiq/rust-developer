@@ -1,4 +1,4 @@
-use chat_library::{deserialize_message, is_valid_ip, incoming_message, outgoing_message, serialize_message, MessageType};
+use shared::{incoming_message, is_valid_ip, outgoing_message, MessageType};
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
@@ -32,11 +32,10 @@ fn server(address: &str) {
     create_folder(FOLDER_IMAGES);
     listen_and_accept(address)
 }
-
 fn listen_and_accept(address: &str) {
     let listener = TcpListener::bind(address).unwrap();
     let mut clients: HashMap<SocketAddr, TcpStream> = HashMap::new();
-    for stream in listener.incoming_message() {
+    for stream in listener.incoming() {
         let mut stream = stream.unwrap();
         let addr = stream.peer_addr().unwrap();
         clients.insert(addr, stream.try_clone().unwrap());
@@ -77,10 +76,9 @@ fn listen_and_accept(address: &str) {
             }
         }
         let response = MessageType::Text("Received".to_string());
-        send_message(&mut stream, &response);
+        outgoing_message(&mut stream, &response);
     }
 }
-
 
 fn create_folder(folder: &str) {
     if let Err(why) = fs::create_dir(folder) {

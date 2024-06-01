@@ -1,10 +1,7 @@
-use chat_library::{deserialize_message, is_valid_ip, incoming_message, outgoing_message, serialize_message, MessageType};
+use shared::{incoming_message, is_valid_ip, outgoing_message, MessageType};
 use std::env;
 use std::io::{self};
-use std::net::{TcpStream};
-
-static FOLDER_FILES: &str = "files";
-static FOLDER_IMAGES: &str = "images";
+use std::net::TcpStream;
 
 fn main() {
     let default_address = "127.0.0.1:11111";
@@ -13,7 +10,7 @@ fn main() {
     if args.len() > 1 && args[1] == "help" {
         println!("=============== USAGE ===============");
         println!("{} serverIP:port", args[0]);
-    } else  {
+    } else {
         client(if args.len() > 1 && is_valid_ip(&args[1]) {
             &args[1]
         } else {
@@ -21,7 +18,6 @@ fn main() {
         });
     }
 }
-
 
 fn read_file(input: String) -> Vec<u8> {
     let mut filename = input.split(' ');
@@ -66,7 +62,7 @@ fn client(address: &str) {
         };
 
         let mut stream = TcpStream::connect(address).unwrap();
-        send_message(&mut stream, &message);
+        outgoing_message(&mut stream, &message);
         let response = incoming_message(stream);
         println!(
             "{} {response:?}",
