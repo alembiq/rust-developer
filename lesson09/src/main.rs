@@ -105,7 +105,7 @@ fn client(address: &str) {
 
         let mut stream = TcpStream::connect(address).unwrap();
         send_message(&mut stream, &message);
-        let response = handle_client(stream);
+        let response = incoming(stream);
         println!(
             "{} {response:?}",
             std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
@@ -127,7 +127,7 @@ fn listen_and_accept(address: &str) {
         let mut stream = stream.unwrap();
         let addr = stream.peer_addr().unwrap();
         clients.insert(addr, stream.try_clone().unwrap());
-        let message = handle_client(clients.get(&addr).unwrap().try_clone().unwrap());
+        let message = incoming(clients.get(&addr).unwrap().try_clone().unwrap());
 
         match message {
             MessageType::Text(text) => {
@@ -135,6 +135,16 @@ fn listen_and_accept(address: &str) {
                     "{} {text:?}",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
                 );
+            }
+            MessageType::File(name, content) => {
+                println!(
+                    "{} saving: {}/{}",
+                    std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
+                    FOLDER_FILES,
+                    name
+                );
+                fs::write(format!("{}/{}", FOLDER_FILES, name), content)
+                    .expect("Could not write file");
             }
             MessageType::Image(image) => {
                 let timestamp: String = std::time::UNIX_EPOCH
@@ -152,35 +162,13 @@ fn listen_and_accept(address: &str) {
                 fs::write(format!("{}/{}.png", FOLDER_IMAGES, timestamp), &image)
                     .expect("Could not write file");
             }
-            MessageType::File(name, content) => {
-                println!(
-                    "{} saving: {}/{}",
-                    std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
-                    FOLDER_FILES,
-                    name
-                );
-                fs::write(format!("{}/{}", FOLDER_FILES, name), content)
-                    .expect("Could not write file");
-            }
         }
-
-        /* TODO based on a message type process
-        Display a notification like Receiving image... or Receiving <filename> for incoming files.
-        .image -> images/<timestamp>.png (convert from other formats)
-        .file -> files/originalfilename
-        incoming text messages, display them directly in stdout.
-        */
-        // Here, you can further process this message as per your requirements
-        // println!(
-        //     "{} {message:?}",
-        //     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
-        // );
         let response = MessageType::Text("Received".to_string());
         send_message(&mut stream, &response);
     }
 }
 
-fn handle_client(mut stream: TcpStream) -> MessageType {
+fn incoming(mut stream: TcpStream) -> MessageType {
     let mut len_bytes = [0u8; 4];
     stream.read_exact(&mut len_bytes).unwrap();
     let len = u32::from_be_bytes(len_bytes) as usize;

@@ -1,12 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-// #[derive(Serialize, Deserialize, Debug)]
-// pub enum MessageType {
-//     Text(String),
-//     Image(Vec<u8>),
-//     File(name: String, content: Vec<u8>),
-// }
-
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {
     Text(String),
