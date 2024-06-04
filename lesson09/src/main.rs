@@ -2,8 +2,10 @@ use lesson09::{deserialize_message, serialize_message, MessageType};
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, Cursor};
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
+use image::codecs::png::PngEncoder;
+use image::ImageEncoder;
 
 static FOLDER_FILES: &str = "files";
 static FOLDER_IMAGES: &str = "images";
@@ -72,7 +74,6 @@ fn client(address: &str) {
         "{} Starting client!",
         std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
     );
-    // TODO error message if client is not able to connect
     loop {
         println!(
             "{} What to send? (text / .image <filename> / .file <filename> / .quit): ",
@@ -97,7 +98,14 @@ fn client(address: &str) {
                 let filename: &str = file.nth(1).expect("missing filename");
                 MessageType::File(filename.to_string(), read_file(user_input.to_string()))
             } else if user_input.starts_with(".image") {
-                MessageType::Image(read_file(user_input.to_string()))
+                //TODO convert to png
+                let mut file = user_input.split(' ');
+                let filename: &str = file.nth(1).expect("missing filename");
+                let img = image::open(filename).unwrap();
+                let mut output = Cursor::new(Vec::new());
+                let encoder = PngEncoder::new(&mut output);
+                let _ = encoder.write_image(img.as_bytes(), img.width(), img.height(), img.color().into());
+                MessageType::Image(output.into_inner() as  Vec<u8>)
             } else {
                 MessageType::Text(user_input.to_string())
             }
@@ -158,7 +166,6 @@ fn listen_and_accept(address: &str) {
                     FOLDER_IMAGES,
                     timestamp
                 );
-                //TODO convert to png
                 fs::write(format!("{}/{}.png", FOLDER_IMAGES, timestamp), &image)
                     .expect("Could not write file");
             }
