@@ -1,9 +1,9 @@
+use image::codecs::png::PngEncoder;
+use image::ImageEncoder;
 use shared::{incoming_message, is_valid_ip, outgoing_message, MessageType};
 use std::env;
 use std::io::{self, Cursor};
 use std::net::TcpStream;
-use image::codecs::png::PngEncoder;
-use image::ImageEncoder;
 
 fn main() {
     let default_address = "127.0.0.1:11111";
@@ -32,7 +32,6 @@ fn client(address: &str) {
         "{} Starting client!",
         std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
     );
-    // TODO error message if client is not able to connect
     loop {
         println!(
             "{} What to send? (text / .image <filename> / .file <filename> / .quit): ",
@@ -45,26 +44,31 @@ fn client(address: &str) {
             .expect("Failed to read line");
         let user_input = user_input.trim();
 
-        let message: MessageType = {
-            if user_input.starts_with(".quit") {
+        let message: MessageType = { //Scan user input for commands
+            if user_input.starts_with(".quit") { //QUIT client
                 println!(
                     "{} Exiting!",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
                 );
                 break;
-            } else if user_input.starts_with(".file") {
+            } else if user_input.starts_with(".file") { //send FILE
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
                 MessageType::File(filename.to_string(), read_file(user_input.to_string()))
-            } else if user_input.starts_with(".image") {
+            } else if user_input.starts_with(".image") { //send file as PNG
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
                 let img = image::open(filename).unwrap();
                 let mut output = Cursor::new(Vec::new());
                 let encoder = PngEncoder::new(&mut output);
-                let _ = encoder.write_image(img.as_bytes(), img.width(), img.height(), img.color().into());
-                MessageType::Image(output.into_inner() as  Vec<u8>)
-            } else {
+                let _ = encoder.write_image(
+                    img.as_bytes(),
+                    img.width(),
+                    img.height(),
+                    img.color().into(),
+                );
+                MessageType::Image(output.into_inner() as Vec<u8>)
+            } else { //no command, just TEXT
                 MessageType::Text(user_input.to_string())
             }
         };
@@ -73,8 +77,18 @@ fn client(address: &str) {
         outgoing_message(&mut stream, &message);
         let response = incoming_message(stream);
         println!(
-            "{} {response:?}",
+            "{} server response: {}",
             std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
+            match response {
+                MessageType::Text(text) => { //TEXT message
+                    text
+                }
+                MessageType::Image(_text) => { //TEXT message
+                    "image".to_string()
+                }
+                MessageType::File(_text,_content) => { //TEXT message
+                    "file".to_string()                }
+            }
         );
     }
 }

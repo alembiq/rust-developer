@@ -28,10 +28,13 @@ fn server(address: &str) {
         "{} Starting server!",
         std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
     );
+    //create folders to store incomming objects
     create_folder(FOLDER_FILES);
     create_folder(FOLDER_IMAGES);
     listen_and_accept(address)
 }
+
+// Accepting communication from client and processing their messages.
 fn listen_and_accept(address: &str) {
     let listener = TcpListener::bind(address).unwrap();
     let mut clients: HashMap<SocketAddr, TcpStream> = HashMap::new();
@@ -42,13 +45,13 @@ fn listen_and_accept(address: &str) {
         let message = incoming_message(clients.get(&addr).unwrap().try_clone().unwrap());
 
         match message {
-            MessageType::Text(text) => {
+            MessageType::Text(text) => { //TEXT message
                 println!(
                     "{} {text:?}",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
                 );
             }
-            MessageType::File(name, content) => {
+            MessageType::File(name, content) => { //FILE transfer
                 println!(
                     "{} saving: {}/{}",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
@@ -58,7 +61,7 @@ fn listen_and_accept(address: &str) {
                 fs::write(format!("{}/{}", FOLDER_FILES, name), content)
                     .expect("Could not write file");
             }
-            MessageType::Image(image) => {
+            MessageType::Image(image) => { //IMAGE transfer
                 let timestamp: String = std::time::UNIX_EPOCH
                     .elapsed()
                     .unwrap()
@@ -70,12 +73,11 @@ fn listen_and_accept(address: &str) {
                     FOLDER_IMAGES,
                     timestamp
                 );
-                //TODO convert to png
                 fs::write(format!("{}/{}.png", FOLDER_IMAGES, timestamp), &image)
                     .expect("Could not write file");
             }
         }
-        let response = MessageType::Text("Received".to_string());
+        let response = MessageType::Text("󰸞".to_string());
         outgoing_message(&mut stream, &response);
     }
 }
