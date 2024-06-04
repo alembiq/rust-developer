@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 time = "0.3.36"
 shared = { path = "../shared" }
+image = "0.25.1"

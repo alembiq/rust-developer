@@ -1,7 +1,9 @@
 use shared::{incoming_message, is_valid_ip, outgoing_message, MessageType};
 use std::env;
-use std::io::{self};
+use std::io::{self, Cursor};
 use std::net::TcpStream;
+use image::codecs::png::PngEncoder;
+use image::ImageEncoder;
 
 fn main() {
     let default_address = "127.0.0.1:11111";
@@ -55,7 +57,13 @@ fn client(address: &str) {
                 let filename: &str = file.nth(1).expect("missing filename");
                 MessageType::File(filename.to_string(), read_file(user_input.to_string()))
             } else if user_input.starts_with(".image") {
-                MessageType::Image(read_file(user_input.to_string()))
+                let mut file = user_input.split(' ');
+                let filename: &str = file.nth(1).expect("missing filename");
+                let img = image::open(filename).unwrap();
+                let mut output = Cursor::new(Vec::new());
+                let encoder = PngEncoder::new(&mut output);
+                let _ = encoder.write_image(img.as_bytes(), img.width(), img.height(), img.color().into());
+                MessageType::Image(output.into_inner() as  Vec<u8>)
             } else {
                 MessageType::Text(user_input.to_string())
             }
