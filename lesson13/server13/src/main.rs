@@ -1,4 +1,6 @@
-use shared13::{incoming_message, is_valid_ip, outgoing_message, MessageType, current_time, DEFAULT_ADDRESS};
+use shared13::{
+    current_time, incoming_message, is_valid_ip, outgoing_message, MessageType, DEFAULT_ADDRESS,
+};
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
@@ -22,10 +24,7 @@ fn main() {
 }
 
 fn server(address: &str) {
-    println!(
-        "{} Starting server!",
-        current_time()
-    );
+    println!("{} Starting server!", current_time());
     //create folders to store incomming objects
     create_folder(FOLDER_FILES);
     create_folder(FOLDER_IMAGES);
@@ -45,19 +44,11 @@ fn listen_and_accept(address: &str) {
         match message {
             MessageType::Text(text) => {
                 //TEXT message
-                println!(
-                    "{} {text:?}",
-                    current_time()
-                );
+                println!("{} {text:?}", current_time());
             }
             MessageType::File(name, content) => {
                 //FILE transfer
-                println!(
-                    "{} saving: {}/{}",
-                    current_time(),
-                    FOLDER_FILES,
-                    name
-                );
+                println!("{} saving: {}/{}", current_time(), FOLDER_FILES, name);
                 fs::write(format!("{}/{}", FOLDER_FILES, name), content)
                     .expect("Could not write file");
             }

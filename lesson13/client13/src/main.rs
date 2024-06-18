@@ -1,6 +1,8 @@
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
-use shared13::{incoming_message, is_valid_ip, outgoing_message, MessageType, current_time, DEFAULT_ADDRESS};
+use shared13::{
+    current_time, incoming_message, is_valid_ip, outgoing_message, MessageType, DEFAULT_ADDRESS,
+};
 use std::env;
 use std::io::{self, Cursor};
 use std::net::TcpStream;
@@ -26,10 +28,7 @@ fn read_file(input: String) -> Vec<u8> {
 }
 
 fn client(address: &str) {
-    println!(
-        "{} Starting client!",
-        current_time()
-    );
+    println!("{} Starting client!", current_time());
     loop {
         println!(
             "{} What to send? (text / .image <filename> / .file <filename> / .quit): ",
@@ -46,10 +45,7 @@ fn client(address: &str) {
             //Scan user input for commands
             if user_input.starts_with(".quit") {
                 //QUIT client
-                println!(
-                    "{} Exiting!",
-                    current_time(),
-                );
+                println!("{} Exiting!", current_time(),);
                 break;
             } else if user_input.starts_with(".file") {
                 //send FILE
