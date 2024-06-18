@@ -1,20 +1,22 @@
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
 use shared13::{
-    current_time, incoming_message, outgoing_message, server_address, MessageType, read_file
+    current_time, incoming_message, outgoing_message, read_file, server_address, MessageType,
 };
 use std::env;
 use std::io::{self, Cursor};
 use std::net::TcpStream;
 
 fn main() {
+    let server_address: String = server_address(env::args().collect());
 
-    let server_address : String = server_address(env::args().collect());
-
-    println!("{} Client connecting to {}!", current_time(), server_address);
+    println!(
+        "{} Client connecting to {}!",
+        current_time(),
+        server_address
+    );
     user_actions(server_address);
 }
-
 
 fn user_actions(address: String) {
     loop {
@@ -59,7 +61,6 @@ fn user_actions(address: String) {
                 MessageType::Text(user_input.to_string())
             }
         };
-
 
         let mut stream = TcpStream::connect(&address).unwrap();
         outgoing_message(&mut stream, &message);

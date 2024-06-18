@@ -1,5 +1,6 @@
 use shared13::{
-    current_time, incoming_message, outgoing_message, MessageType, server_address, create_folder };
+    create_folder, current_time, incoming_message, outgoing_message, server_address, MessageType,
+};
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
@@ -9,8 +10,7 @@ static FOLDER_FILES: &str = "files";
 static FOLDER_IMAGES: &str = "images";
 
 fn main() {
-
-    let server_address : String = server_address(env::args().collect());
+    let server_address: String = server_address(env::args().collect());
 
     println!("{} Starting server on {}!", current_time(), server_address);
     //create folders to store incomming objects

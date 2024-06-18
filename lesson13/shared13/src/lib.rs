@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::fs::{self};
 use std::io::{Read, Write};
 use std::net::{IpAddr, TcpStream};
-use std::fs::{self};
 
 pub static DEFAULT_ADDRESS: &str = "127.0.0.1:11111";
 
@@ -59,7 +59,6 @@ pub fn current_time() -> String {
         .as_secs()
         .to_string()
 }
-
 
 pub fn read_file(input: String) -> Vec<u8> {
     let mut filename = input.split(' ');

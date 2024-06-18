@@ -2,6 +2,18 @@
 
 if command -v cargo  &> /dev/null
 then
+    # list of the staged rust files
+    FILES=`git status --porcelain | grep -e '^[AM]\(.*\).rs\|^[AM]\(.*\).toml$' | cut -c 3- | tr '\n' ' '`
+    # current directory
+    HERE=$(pwd)
+
+    # move to root of the repository
+    cd $(git rev-parse --show-toplevel)
+    # do your work
     cargo check && cargo fmt && cargo test && cargo clippy -- -D warnings
-      # cargo fix --allow-staged
+    # add the formatted files back to the staged area
+    git add $FILES
+
+    # return to current directiry
+    cd $HERE
 fi
