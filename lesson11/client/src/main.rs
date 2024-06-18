@@ -44,18 +44,22 @@ fn client(address: &str) {
             .expect("Failed to read line");
         let user_input = user_input.trim();
 
-        let message: MessageType = { //Scan user input for commands
-            if user_input.starts_with(".quit") { //QUIT client
+        let message: MessageType = {
+            //Scan user input for commands
+            if user_input.starts_with(".quit") {
+                //QUIT client
                 println!(
                     "{} Exiting!",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
                 );
                 break;
-            } else if user_input.starts_with(".file") { //send FILE
+            } else if user_input.starts_with(".file") {
+                //send FILE
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
                 MessageType::File(filename.to_string(), read_file(user_input.to_string()))
-            } else if user_input.starts_with(".image") { //send file as PNG
+            } else if user_input.starts_with(".image") {
+                //send file as PNG
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
                 let img = image::open(filename).unwrap();
@@ -68,7 +72,8 @@ fn client(address: &str) {
                     img.color().into(),
                 );
                 MessageType::Image(output.into_inner() as Vec<u8>)
-            } else { //no command, just TEXT
+            } else {
+                //no command, just TEXT
                 MessageType::Text(user_input.to_string())
             }
         };
@@ -80,14 +85,18 @@ fn client(address: &str) {
             "{} server response: {}",
             std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
             match response {
-                MessageType::Text(text) => { //TEXT message
+                MessageType::Text(text) => {
+                    //TEXT message
                     text
                 }
-                MessageType::Image(_text) => { //TEXT message
+                MessageType::Image(_text) => {
+                    //TEXT message
                     "image".to_string()
                 }
-                MessageType::File(_text,_content) => { //TEXT message
-                    "file".to_string()                }
+                MessageType::File(_text, _content) => {
+                    //TEXT message
+                    "file".to_string()
+                }
             }
         );
     }

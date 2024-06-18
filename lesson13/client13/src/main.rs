@@ -1,13 +1,11 @@
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
-use shared13::{incoming_message, is_valid_ip, outgoing_message, MessageType};
+use shared13::{incoming_message, is_valid_ip, outgoing_message, MessageType, current_time, DEFAULT_ADDRESS};
 use std::env;
 use std::io::{self, Cursor};
 use std::net::TcpStream;
 
 fn main() {
-    let default_address = "127.0.0.1:11111";
-
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 && args[1] == "help" {
         println!("=============== USAGE ===============");
@@ -16,7 +14,7 @@ fn main() {
         client(if args.len() > 1 && is_valid_ip(&args[1]) {
             &args[1]
         } else {
-            default_address
+            DEFAULT_ADDRESS
         });
     }
 }
@@ -30,12 +28,12 @@ fn read_file(input: String) -> Vec<u8> {
 fn client(address: &str) {
     println!(
         "{} Starting client!",
-        std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
+        current_time()
     );
     loop {
         println!(
             "{} What to send? (text / .image <filename> / .file <filename> / .quit): ",
-            std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
+            current_time(),
         );
 
         let mut user_input = String::new();
@@ -44,18 +42,22 @@ fn client(address: &str) {
             .expect("Failed to read line");
         let user_input = user_input.trim();
 
-        let message: MessageType = { //Scan user input for commands
-            if user_input.starts_with(".quit") { //QUIT client
+        let message: MessageType = {
+            //Scan user input for commands
+            if user_input.starts_with(".quit") {
+                //QUIT client
                 println!(
                     "{} Exiting!",
-                    std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
+                    current_time(),
                 );
                 break;
-            } else if user_input.starts_with(".file") { //send FILE
+            } else if user_input.starts_with(".file") {
+                //send FILE
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
                 MessageType::File(filename.to_string(), read_file(user_input.to_string()))
-            } else if user_input.starts_with(".image") { //send file as PNG
+            } else if user_input.starts_with(".image") {
+                //send file as PNG
                 let mut file = user_input.split(' ');
                 let filename: &str = file.nth(1).expect("missing filename");
                 let img = image::open(filename).unwrap();
@@ -68,7 +70,8 @@ fn client(address: &str) {
                     img.color().into(),
                 );
                 MessageType::Image(output.into_inner() as Vec<u8>)
-            } else { //no command, just TEXT
+            } else {
+                //no command, just TEXT
                 MessageType::Text(user_input.to_string())
             }
         };
@@ -78,16 +81,20 @@ fn client(address: &str) {
         let response = incoming_message(stream);
         println!(
             "{} server response: {}",
-            std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
+            current_time(),
             match response {
-                MessageType::Text(text) => { //TEXT message
+                MessageType::Text(text) => {
+                    //TEXT message
                     text
                 }
-                MessageType::Image(_text) => { //TEXT message
+                MessageType::Image(_text) => {
+                    //TEXT message
                     "image".to_string()
                 }
-                MessageType::File(_text,_content) => { //TEXT message
-                    "file".to_string()                }
+                MessageType::File(_text, _content) => {
+                    //TEXT message
+                    "file".to_string()
+                }
             }
         );
     }

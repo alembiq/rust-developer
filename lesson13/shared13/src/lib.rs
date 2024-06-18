@@ -2,15 +2,19 @@ use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{IpAddr, TcpStream};
 
+
+pub static DEFAULT_ADDRESS : &str = "127.0.0.1:11111";
+
+
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {
-    Text(String),
-    Image(Vec<u8>),
     File(String, Vec<u8>), // Filename and its content as bytes
+    Image(Vec<u8>),
+    Text(String),
 }
 
 pub fn serialize_message(message: &MessageType) -> String {
-        serde_json::to_string(&message).unwrap()
+    serde_json::to_string(&message).unwrap()
 }
 
 pub fn deserialize_message(input: &[u8]) -> MessageType {
@@ -32,6 +36,17 @@ pub fn outgoing_message(stream: &mut TcpStream, message: &MessageType) {
     stream.write_all(&len.to_be_bytes()).unwrap();
     stream.write_all(serialized.as_bytes()).unwrap();
 }
+
+
+
+
+
+
+
 pub fn is_valid_ip(ip: &str) -> bool {
     ip.parse::<IpAddr>().is_ok()
+}
+
+pub fn current_time() -> String {
+    std::time::UNIX_EPOCH.elapsed().unwrap().as_secs().to_string()
 }

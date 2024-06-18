@@ -45,13 +45,15 @@ fn listen_and_accept(address: &str) {
         let message = incoming_message(clients.get(&addr).unwrap().try_clone().unwrap());
 
         match message {
-            MessageType::Text(text) => { //TEXT message
+            MessageType::Text(text) => {
+                //TEXT message
                 println!(
                     "{} {text:?}",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs()
                 );
             }
-            MessageType::File(name, content) => { //FILE transfer
+            MessageType::File(name, content) => {
+                //FILE transfer
                 println!(
                     "{} saving: {}/{}",
                     std::time::UNIX_EPOCH.elapsed().unwrap().as_secs(),
@@ -61,7 +63,8 @@ fn listen_and_accept(address: &str) {
                 fs::write(format!("{}/{}", FOLDER_FILES, name), content)
                     .expect("Could not write file");
             }
-            MessageType::Image(image) => { //IMAGE transfer
+            MessageType::Image(image) => {
+                //IMAGE transfer
                 let timestamp: String = std::time::UNIX_EPOCH
                     .elapsed()
                     .unwrap()
