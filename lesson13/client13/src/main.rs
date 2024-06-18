@@ -1,34 +1,22 @@
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
 use shared13::{
-    current_time, incoming_message, is_valid_ip, outgoing_message, MessageType, DEFAULT_ADDRESS,
+    current_time, incoming_message, outgoing_message, server_address, MessageType, read_file
 };
 use std::env;
 use std::io::{self, Cursor};
 use std::net::TcpStream;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() > 1 && args[1] == "help" {
-        println!("=============== USAGE ===============");
-        println!("{} serverIP:port", args[0]);
-    } else {
-        client(if args.len() > 1 && is_valid_ip(&args[1]) {
-            &args[1]
-        } else {
-            DEFAULT_ADDRESS
-        });
-    }
+
+    let server_address : String = server_address(env::args().collect());
+
+    println!("{} Client connecting to {}!", current_time(), server_address);
+    user_actions(server_address);
 }
 
-fn read_file(input: String) -> Vec<u8> {
-    let mut filename = input.split(' ');
-    let filename: &str = filename.nth(1).expect("missing filename");
-    std::fs::read(format!("./{}", filename)).unwrap()
-}
 
-fn client(address: &str) {
-    println!("{} Starting client!", current_time());
+fn user_actions(address: String) {
     loop {
         println!(
             "{} What to send? (text / .image <filename> / .file <filename> / .quit): ",
@@ -72,7 +60,8 @@ fn client(address: &str) {
             }
         };
 
-        let mut stream = TcpStream::connect(address).unwrap();
+
+        let mut stream = TcpStream::connect(&address).unwrap();
         outgoing_message(&mut stream, &message);
         let response = incoming_message(stream);
         println!(

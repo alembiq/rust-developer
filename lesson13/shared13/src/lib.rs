@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{IpAddr, TcpStream};
+use std::fs::{self};
 
 pub static DEFAULT_ADDRESS: &str = "127.0.0.1:11111";
 
@@ -39,10 +40,39 @@ pub fn is_valid_ip(ip: &str) -> bool {
     ip.parse::<IpAddr>().is_ok()
 }
 
+pub fn server_address(args: Vec<String>) -> String {
+    if args.len() > 1 && args[1] == "help" {
+        println!("=============== USAGE ===============");
+        println!("{} IPaddress:port", args[0]);
+        panic!()
+    } else if args.len() > 1 && args[1].parse::<IpAddr>().is_ok() {
+        args[1].clone()
+    } else {
+        DEFAULT_ADDRESS.to_string()
+    }
+}
+
 pub fn current_time() -> String {
     std::time::UNIX_EPOCH
         .elapsed()
         .unwrap()
         .as_secs()
         .to_string()
+}
+
+
+pub fn read_file(input: String) -> Vec<u8> {
+    let mut filename = input.split(' ');
+    let filename: &str = filename.nth(1).expect("missing filename");
+    std::fs::read(format!("./{}", filename)).unwrap()
+}
+pub fn create_folder(folder: &str) {
+    if let Err(why) = fs::create_dir(folder) {
+        println!(
+            "{} creating {} folder: {:?}",
+            current_time(),
+            { folder },
+            why.kind()
+        )
+    }
 }

@@ -1,6 +1,5 @@
 use shared13::{
-    current_time, incoming_message, is_valid_ip, outgoing_message, MessageType, DEFAULT_ADDRESS,
-};
+    current_time, incoming_message, outgoing_message, MessageType, server_address, create_folder };
 use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
@@ -10,29 +9,18 @@ static FOLDER_FILES: &str = "files";
 static FOLDER_IMAGES: &str = "images";
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() > 1 && args[1] == "help" {
-        println!("=============== USAGE ===============");
-        println!("{} listenerIP:port", args[0]);
-    } else {
-        server(if args.len() > 1 && is_valid_ip(&args[1]) {
-            &args[1]
-        } else {
-            DEFAULT_ADDRESS
-        });
-    }
-}
 
-fn server(address: &str) {
-    println!("{} Starting server!", current_time());
+    let server_address : String = server_address(env::args().collect());
+
+    println!("{} Starting server on {}!", current_time(), server_address);
     //create folders to store incomming objects
     create_folder(FOLDER_FILES);
     create_folder(FOLDER_IMAGES);
-    listen_and_accept(address)
+    listen_and_accept(server_address)
 }
 
 // Accepting communication from client and processing their messages.
-fn listen_and_accept(address: &str) {
+fn listen_and_accept(address: String) {
     let listener = TcpListener::bind(address).unwrap();
     let mut clients: HashMap<SocketAddr, TcpStream> = HashMap::new();
     for stream in listener.incoming() {
@@ -71,16 +59,5 @@ fn listen_and_accept(address: &str) {
         }
         let response = MessageType::Text("󰸞".to_string());
         outgoing_message(&mut stream, &response);
-    }
-}
-
-fn create_folder(folder: &str) {
-    if let Err(why) = fs::create_dir(folder) {
-        println!(
-            "{} creating {} folder: {:?}",
-            current_time(),
-            { folder },
-            why.kind()
-        )
     }
 }
