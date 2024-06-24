@@ -21,6 +21,7 @@
           buildInputs = [
             openssl
             pkg-config
+            bacon
             rust-bin.stable.latest.default
           ];
 
