@@ -1,9 +1,31 @@
-use serde::{Deserialize, Serialize};
 use std::fs::{self};
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::net::{IpAddr, TcpStream};
+use std::path::Path;
+use std::process;
+
+use image::codecs::png::PngEncoder;
+use image::ImageEncoder;
+
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 pub static DEFAULT_ADDRESS: &str = "127.0.0.1:11111";
+
+#[derive(Error, Debug)]
+pub enum ErrorMessage {
+    #[error("File name wasn't provided.")]
+    FileNotNamed(String),
+    #[error("File {0} not found.")]
+    FileNotFound(String),
+    #[error("Failed to read from file.")]
+    FileReadFailed(#[from] std::io::Error),
+    #[error("File {0} bigger than allowed size {1}.")]
+    FileTooBig(String, u32),
+
+    #[error("Unsupported image format.")]
+    UnsupportedImage(#[from] image::ImageError),
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {
@@ -44,10 +66,11 @@ pub fn server_address(args: Vec<String>) -> String {
     if args.len() > 1 && args[1] == "help" {
         println!("=============== USAGE ===============");
         println!("{} IPaddress:port", args[0]);
-        panic!()
+        process::exit(1)
     } else if args.len() > 1 && args[1].parse::<IpAddr>().is_ok() {
         args[1].clone()
     } else {
+        //TODO if IP is not valid notify user
         DEFAULT_ADDRESS.to_string()
     }
 }
@@ -63,15 +86,40 @@ pub fn current_time() -> String {
 pub fn read_file(input: String) -> Vec<u8> {
     let mut filename = input.split(' ');
     let filename: &str = filename.nth(1).expect("missing filename");
+    //FIXME better error
     std::fs::read(format!("./{}", filename)).unwrap()
 }
-pub fn create_folder(folder: &str) {
-    if let Err(why) = fs::create_dir(folder) {
-        println!(
-            "{} creating {} folder: {:?}",
-            current_time(),
-            { folder },
-            why.kind()
-        )
+
+pub fn create_directory(directory: &str) {
+    //TODO check for directory existence
+
+    if !Path::new(directory).is_dir() {
+        fs::create_dir(directory).unwrap();
+        println!("{} creating {} directory", current_time(), { directory });
     }
+}
+// pub fn filename_from_input(user_input: &str) -> Result<&str, ErrorMessage> {
+//     let filename = user_input.split(' ').nth(1).expect("missing filename");
+//     if filename.is_empty() {
+//         return  Err(ErrorMessage::FileNotFound(filename.to_string()));
+//     }
+//     Ok(filename)
+// }
+
+pub fn filename_from_input(user_input: &str) -> &str {
+    user_input.split(' ').nth(1).expect("missing filename")
+}
+
+pub fn image_to_png(file: &str) -> Vec<u8> {
+    let img = image::open(file).unwrap();
+    let mut output = Cursor::new(Vec::new());
+    let encoder = PngEncoder::new(&mut output);
+    let _ = encoder.write_image(
+        img.as_bytes(),
+        img.width(),
+        img.height(),
+        img.color().into(),
+    );
+    //TODO encoding failed
+    output.into_inner() as Vec<u8>
 }

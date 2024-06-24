@@ -7,3 +7,4 @@ edition = "2021"
 time = "0.3.36"
 shared13 = { path = "../shared13" }
 image = "0.25.1"
+eyre = "0.6.12"

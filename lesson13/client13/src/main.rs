@@ -1,11 +1,13 @@
-use image::codecs::png::PngEncoder;
-use image::ImageEncoder;
-use shared13::{
-    current_time, incoming_message, outgoing_message, read_file, server_address, MessageType,
-};
 use std::env;
-use std::io::{self, Cursor};
+use std::io::{self};
 use std::net::TcpStream;
+
+// use eyre::{Context, Error};
+
+use shared13::{
+    current_time, filename_from_input, image_to_png, incoming_message, outgoing_message, read_file,
+    server_address, MessageType,
+};
 
 fn main() {
     let server_address: String = server_address(env::args().collect());
@@ -26,9 +28,11 @@ fn user_actions(address: String) {
         );
 
         let mut user_input = String::new();
+
         io::stdin()
             .read_line(&mut user_input)
             .expect("Failed to read line");
+        //FIXME better error
         let user_input = user_input.trim();
 
         let message: MessageType = {
@@ -39,23 +43,19 @@ fn user_actions(address: String) {
                 break;
             } else if user_input.starts_with(".file") {
                 //send FILE
-                let mut file = user_input.split(' ');
-                let filename: &str = file.nth(1).expect("missing filename");
-                MessageType::File(filename.to_string(), read_file(user_input.to_string()))
+                //TODO cannot read file
+                //TODO file size check
+                //TODO create function for reading file
+                MessageType::File(
+                    filename_from_input(user_input).to_string(),
+                    read_file(user_input.to_string()),
+                )
             } else if user_input.starts_with(".image") {
                 //send file as PNG
-                let mut file = user_input.split(' ');
-                let filename: &str = file.nth(1).expect("missing filename");
-                let img = image::open(filename).unwrap();
-                let mut output = Cursor::new(Vec::new());
-                let encoder = PngEncoder::new(&mut output);
-                let _ = encoder.write_image(
-                    img.as_bytes(),
-                    img.width(),
-                    img.height(),
-                    img.color().into(),
-                );
-                MessageType::Image(output.into_inner() as Vec<u8>)
+                //TODO cannot read file
+                //TODO file isn't image
+                //TODO file size check
+                MessageType::Image(image_to_png(filename_from_input(user_input)))
             } else {
                 //no command, just TEXT
                 MessageType::Text(user_input.to_string())
@@ -63,8 +63,10 @@ fn user_actions(address: String) {
         };
 
         let mut stream = TcpStream::connect(&address).unwrap();
+        //TODO error connecting
         outgoing_message(&mut stream, &message);
         let response = incoming_message(stream);
+        //TODO undelivered
         println!(
             "{} server response: {}",
             current_time(),
