@@ -2,8 +2,10 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::{self};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::process;
 
-// use eyre::{Context, Result};
+#[allow(unused_imports)]
+use eyre::{Context, Result, bail};
 
 use shared13::{
     create_directory, current_time, incoming_message, outgoing_message, server_address, MessageType,
@@ -25,24 +27,39 @@ fn main() {
 // Accepting communication from client and processing their messages.
 fn listen_and_accept(address: String) {
     //FIXME error listening
-    let listener = TcpListener::bind(address).unwrap();
+    let listener = match TcpListener::bind(address) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Unable to listen: {e}");
+            process::exit(1)
+        }
+    };
+
     let mut clients: HashMap<SocketAddr, TcpStream> = HashMap::new();
+    let mut reply: String;
+
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
         let addr = stream.peer_addr().unwrap();
         clients.insert(addr, stream.try_clone().unwrap());
-        let message = incoming_message(clients.get(&addr).unwrap().try_clone().unwrap());
+        let message = incoming_message(&mut clients.get(&addr).unwrap().try_clone().unwrap());
         //FIXME notify user connect/disconnect
+
+
+
         match message {
             MessageType::Text(text) => {
                 //TEXT message
-                println!("{} {text:?}", current_time());
+                println!("{} {addr}: {text:?}", current_time());
+                reply = "Received".into();
             }
             MessageType::File(name, content) => {
                 //FILE transfer
                 //TODO unable to save
                 //TODO file already exist
-                println!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name);
+                reply = format!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name).into();
+                // println!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name);
+                println!("{reply}");
                 fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
                     .expect("Could not write file");
             }
@@ -55,17 +72,14 @@ fn listen_and_accept(address: String) {
                     .unwrap()
                     .as_secs()
                     .to_string();
-                println!(
-                    "{} saving: {}/{}.png",
-                    current_time(),
-                    DIRECTORY_IMAGES,
-                    timestamp
-                );
+                reply = format!("{} saving: {}/{}.png",                    current_time(),                    DIRECTORY_IMAGES,                    timestamp);
+                println!(                    "{reply}"                );
                 fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, timestamp), &image)
                     .expect("Could not write file");
             }
         }
-        let response = MessageType::Text("󰸞".to_string());
+        let response = MessageType::Text(format!("{} 󰸞", reply));
+        reply.clear();
         outgoing_message(&mut stream, &response);
     }
 }

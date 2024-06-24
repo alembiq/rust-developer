@@ -1,8 +1,9 @@
-use std::env;
 use std::io::{self};
 use std::net::TcpStream;
+use std::{env, process, thread::JoinHandle};
 
-// use eyre::{Context, Error};
+#[allow(unused_imports)]
+use eyre::{bail, Context, Error};
 
 use shared13::{
     current_time, filename_from_input, image_to_png, incoming_message, outgoing_message, read_file,
@@ -17,58 +18,86 @@ fn main() {
         current_time(),
         server_address
     );
-    user_actions(server_address);
+
+    //TODO error connecting
+    //FIXME while outside loop, only one message is send
+    let outgoing_stream = match TcpStream::connect(server_address) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Unable to connect: {e}");
+            process::exit(1)
+        }
+    };
+    let incomming_stream = outgoing_stream.try_clone().unwrap();
+
+    let outgoing_handle = outgoing(outgoing_stream);
+    if outgoing_handle.join().is_err() {
+        println!("Failed to spawn outgoing thread");
+    };
+
+    let incomming_handle = incomming(incomming_stream);
+    if incomming_handle.join().is_err() {
+        println!("Failed to spawn incomming thread");
+    };
 }
 
-fn user_actions(address: String) {
+fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
+    let help_message = "What to send? (text / .image <filename> / .file <filename> / .quit): ";
+
+    println!("{help_message}");
+
     loop {
-        println!(
-            "{} What to send? (text / .image <filename> / .file <filename> / .quit): ",
-            current_time(),
-        );
-
         let mut user_input = String::new();
-
         io::stdin()
             .read_line(&mut user_input)
             .expect("Failed to read line");
         //FIXME better error
         let user_input = user_input.trim();
 
+        // let mut split = input.split_whitespace();
+        // let cmd = split.next().unwrap_or_default();
+
         let message: MessageType = {
-            //Scan user input for commands
-            if user_input.starts_with(".quit") {
-                //QUIT client
-                println!("{} Exiting!", current_time(),);
-                break;
-            } else if user_input.starts_with(".file") {
-                //send FILE
-                //TODO cannot read file
-                //TODO file size check
-                //TODO create function for reading file
-                MessageType::File(
-                    filename_from_input(user_input).to_string(),
-                    read_file(user_input.to_string()),
-                )
-            } else if user_input.starts_with(".image") {
-                //send file as PNG
-                //TODO cannot read file
-                //TODO file isn't image
-                //TODO file size check
-                MessageType::Image(image_to_png(filename_from_input(user_input)))
-            } else {
-                //no command, just TEXT
-                MessageType::Text(user_input.to_string())
+            match user_input.split_whitespace().next().unwrap_or_default() {
+                ".quit" => {
+                    println!("{} Exiting!", current_time(),);
+                    process::exit(1)
+                }
+                ".file" => {
+                    //TODO cannot read file
+                    //TODO file size check
+                    //TODO create function for reading file
+                    MessageType::File(
+                        filename_from_input(user_input).to_string(),
+                        read_file(user_input.to_string()),
+                    )
+                }
+                ".image" => {
+                    //TODO cannot read file
+                    //TODO file isn't image
+                    //TODO file size check
+                    MessageType::Image(image_to_png(filename_from_input(user_input)))
+                }
+                _ => {
+                    //TODO handle empty string ? write help
+                    if user_input.is_empty() {
+                        println!("{help_message}");
+                    }
+
+                    MessageType::Text(user_input.to_string())
+                }
             }
         };
 
-        let mut stream = TcpStream::connect(&address).unwrap();
-        //TODO error connecting
         outgoing_message(&mut stream, &message);
-        let response = incoming_message(stream);
-        //TODO undelivered
+    }
+}
+
+fn incomming(mut stream: TcpStream) -> JoinHandle<()> {
+    loop {
+        let response = incoming_message(&mut stream);
         println!(
-            "{} server response: {}",
+            "{} server: {}",
             current_time(),
             match response {
                 MessageType::Text(text) => {
@@ -85,5 +114,5 @@ fn user_actions(address: String) {
                 }
             }
         );
-    }
+    };
 }
