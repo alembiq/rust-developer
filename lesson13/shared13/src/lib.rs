@@ -53,7 +53,7 @@ pub fn server_address(args: Vec<String>) -> String {
     }
 }
 
-/// MESSAGE HANDLING  mayre redo in the future as implementations of MessaType
+/// MESSAGE HANDLING  maybe redo as implementations of MessageType
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum MessageType {

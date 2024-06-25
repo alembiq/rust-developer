@@ -1,3 +1,6 @@
+[![Rust](https://github.com/alembiq/rust-developer/actions/workflows/rust.yml/badge.svg)](https://github.com/alembiq/rust-developer/actions/workflows/rust.yml)
+
+
 # Some random notes and links ;)
 ## Course related links
 - [classroom](https://classroom.google.com/c/NjU2NTMyOTI1NDY3)

@@ -24,7 +24,7 @@ fn main() {
     listen_and_accept(server_address)
 }
 
-// Accepting communication from client and processing their messages.
+/// Accepting communication from client and processing their messages.
 fn listen_and_accept(address: String) {
     //FIXME error listening
     let listener = match TcpListener::bind(address) {
@@ -47,12 +47,10 @@ fn listen_and_accept(address: String) {
 
         match message {
             MessageType::Text(text) => {
-                //TEXT message
                 println!("{} {addr}: {text:?}", current_time());
                 reply = "Received".into();
             }
             MessageType::File(name, content) => {
-                //FILE transfer
                 //TODO unable to save
                 //TODO file already exist
                 reply = format!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name);
@@ -61,7 +59,6 @@ fn listen_and_accept(address: String) {
                     .expect("Could not write file");
             }
             MessageType::Image(image) => {
-                //IMAGE transfer
                 //TODO unable to save
                 //TODO file already exist
                 let timestamp: String = std::time::UNIX_EPOCH
