@@ -54,7 +54,6 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
             .expect("Failed to read line");
         //FIXME better error
         let trimmed_input = user_input.trim();
-        //??? odmazat vstupy na konci?
 
         let message: MessageType = {
             match user_input.split_whitespace().next().unwrap_or_default() {
@@ -67,7 +66,7 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
                     //TODO file size check
                     //TODO create function for reading file
                     MessageType::File(
-                        filename_from_input(&trimmed_input).to_string(),
+                        filename_from_input(trimmed_input).to_string(),
                         read_file(trimmed_input.to_string()),
                     )
                 }
