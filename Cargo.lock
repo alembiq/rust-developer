@@ -998,7 +998,6 @@ dependencies = [
  "ciborium",
  "image",
  "serde",
- "serde_json",
  "thiserror",
 ]
 

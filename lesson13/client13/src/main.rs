@@ -66,7 +66,7 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
                     //TODO file size check
                     //TODO create function for reading file
                     MessageType::File(
-                        filename_from_input(&trimmed_input).to_string(),
+                        filename_from_input(trimmed_input).to_string(),
                         read_file(trimmed_input.to_string()),
                     )
                 }

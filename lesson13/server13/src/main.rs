@@ -55,8 +55,7 @@ fn listen_and_accept(address: String) {
                 //FILE transfer
                 //TODO unable to save
                 //TODO file already exist
-                reply = format!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name).into();
-                // println!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name);
+                reply = format!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name);
                 println!("{reply}");
                 fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
                     .expect("Could not write file");
