@@ -54,7 +54,6 @@ pub fn server_address(args: Vec<String>) -> String {
     }
 }
 
-
 /// MESSAGE HANDLING  mayre redo in the future as implementations of MessaType
 
 #[derive(Serialize, Deserialize, Debug)]

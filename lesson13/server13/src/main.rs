@@ -5,7 +5,7 @@ use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::process;
 
 #[allow(unused_imports)]
-use eyre::{Context, Result, bail};
+use eyre::{bail, Context, Result};
 
 use shared13::{
     create_directory, current_time, incoming_message, outgoing_message, server_address, MessageType,
@@ -45,8 +45,6 @@ fn listen_and_accept(address: String) {
         let message = incoming_message(&mut clients.get(&addr).unwrap().try_clone().unwrap());
         //FIXME notify user connect/disconnect
 
-
-
         match message {
             MessageType::Text(text) => {
                 //TEXT message
@@ -72,14 +70,19 @@ fn listen_and_accept(address: String) {
                     .unwrap()
                     .as_secs()
                     .to_string();
-                reply = format!("{} saving: {}/{}.png",                    current_time(),                    DIRECTORY_IMAGES,                    timestamp);
-                println!(                    "{reply}"                );
+                reply = format!(
+                    "{} saving: {}/{}.png",
+                    current_time(),
+                    DIRECTORY_IMAGES,
+                    timestamp
+                );
+                println!("{reply}");
                 fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, timestamp), &image)
                     .expect("Could not write file");
             }
         }
         let response = MessageType::Text(format!("{} 󰸞", reply));
-        reply.clear();
         outgoing_message(&mut stream, &response);
+        reply.clear();
     }
 }
