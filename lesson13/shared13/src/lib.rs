@@ -6,7 +6,7 @@ use std::process;
 
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
-
+use ciborium;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -77,14 +77,20 @@ pub fn incoming_message(stream: &mut TcpStream) -> MessageType {
     let len = u32::from_be_bytes(len_bytes) as usize;
     let mut buffer = vec![0u8; len];
     stream.read_exact(&mut buffer).unwrap();
-    deserialize_message(&buffer)
+    // deserialize_message(&buffer)
+    ciborium::from_reader(&mut &buffer[..]).unwrap()
 }
 
 pub fn outgoing_message(stream: &mut TcpStream, message: &MessageType) {
-    let serialized = serialize_message(message);
-    let len = serialized.len() as u32;
+    // let serialized = serialize_message(message);
+    // let len = serialized.len() as u32;
+    // stream.write_all(&len.to_be_bytes()).unwrap();
+    // stream.write_all(serialized.as_bytes()).unwrap();
+    let mut buffer = Vec::new();
+    ciborium::into_writer(message, &mut buffer).unwrap();
+    let len = buffer.len() as u8;
     stream.write_all(&len.to_be_bytes()).unwrap();
-    stream.write_all(serialized.as_bytes()).unwrap();
+    stream.write_all(&buffer).unwrap();
 }
 
 /// FILE HANDLING

@@ -54,7 +54,6 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
             .expect("Failed to read line");
         //FIXME better error
         let trimmed_input = user_input.trim();
-        //??? odmazat vstupy na konci?
 
         let message: MessageType = {
             match user_input.split_whitespace().next().unwrap_or_default() {
