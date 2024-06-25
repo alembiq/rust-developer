@@ -59,7 +59,7 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
             match user_input.split_whitespace().next().unwrap_or_default() {
                 ".quit" => {
                     println!("{} Exiting!", current_time(),);
-                    process::exit(1)
+                    process::exit(0)
                 }
                 ".file" => {
                     //TODO cannot read file
