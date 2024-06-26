@@ -1,10 +1,10 @@
 [package]
-name = "server13"
+name = "client13"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 time = "0.3.36"
 shared13 = { path = "../shared13" }
+image = "0.25.1"
 eyre = "0.6.12"
-parking_lot = "0.12.3"

@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fs::{self};
 use std::io::{Cursor, Read, Write};
 use std::net::{IpAddr, TcpStream};
@@ -10,11 +11,11 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub static DEFAULT_ADDRESS: &str = "127.0.0.1:11111";
+pub static DIRECTORY_FILES: &str = "files";
+pub static DIRECTORY_IMAGES: &str = "images";
 
 #[derive(Error, Debug)]
 pub enum ErrorMessage {
-    #[error("File name wasn't provided.")]
-    FileNotNamed(String),
     #[error("File {0} not found.")]
     FileNotFound(String),
     #[error("File {0} bigger than allowed size {1}.")]
@@ -51,7 +52,6 @@ pub fn server_address(args: Vec<String>) -> String {
     } else if args.len() > 1 && args[1].parse::<IpAddr>().is_ok() {
         args[1].clone()
     } else {
-        //TODO if IP is not valid notify user
         DEFAULT_ADDRESS.to_string()
     }
 }
@@ -75,12 +75,16 @@ pub fn incoming_message(stream: &mut TcpStream) -> Result<MessageType, ErrorMess
     Ok(ciborium::from_reader(&mut &buffer[..])?)
 }
 
-pub fn outgoing_message(stream: &mut TcpStream, message: &MessageType) {
+pub fn outgoing_message(
+    stream: &mut TcpStream,
+    message: &MessageType,
+) -> Result<(), Box<dyn Error>> {
     let mut buffer = Vec::new();
-    ciborium::into_writer(message, &mut buffer).unwrap();
+    ciborium::into_writer(message, &mut buffer)?;
     let len = buffer.len() as u32;
-    stream.write_all(&len.to_be_bytes()).unwrap();
-    stream.write_all(&buffer).unwrap();
+    stream.write_all(&len.to_be_bytes())?;
+    stream.write_all(&buffer)?;
+    Ok(())
 }
 
 /// FILE HANDLING
@@ -88,13 +92,10 @@ pub fn outgoing_message(stream: &mut TcpStream, message: &MessageType) {
 pub fn read_file(input: String) -> Vec<u8> {
     let mut filename = input.split_whitespace();
     let filename: &str = filename.nth(1).expect("missing filename");
-    //FIXME better error
     std::fs::read(format!("./{}", filename)).unwrap()
 }
 
 pub fn create_directory(directory: &str) {
-    //TODO check for directory existence
-
     if !Path::new(directory).is_dir() {
         fs::create_dir(directory).unwrap();
         println!("{} creating {} directory", current_time(), { directory });
@@ -119,6 +120,5 @@ pub fn image_to_png(file: &str) -> Vec<u8> {
         img.height(),
         img.color().into(),
     );
-    //TODO encoding failed
     output.into_inner() as Vec<u8>
 }

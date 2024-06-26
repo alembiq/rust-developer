@@ -1,14 +1,15 @@
 use std::env;
+use std::fs;
 use std::io;
 use std::net::TcpStream;
 use std::process;
 use std::thread::{self, JoinHandle};
 
-use eyre::{anyhow, bail, Context, Error, Result};
+use eyre::{anyhow, bail, Context, Result};
 
 use shared13::{
-    current_time, filename_from_input, image_to_png, incoming_message, outgoing_message, read_file,
-    server_address, MessageType,
+    create_directory, current_time, filename_from_input, image_to_png, incoming_message,
+    outgoing_message, read_file, server_address, MessageType, DIRECTORY_FILES, DIRECTORY_IMAGES,
 };
 
 fn main() -> Result<()> {
@@ -20,22 +21,19 @@ fn main() -> Result<()> {
         server_address
     );
 
-    //TODO error connecting
-    //FIXME while outside loop, only one message is send
     let outgoing_stream = match TcpStream::connect(server_address) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Unable to connect: {e}");
-            process::exit(1)
+            bail!("Unable to connect: {e}")
         }
     };
 
-    let incomming_stream = outgoing_stream
+    let incoming_stream = outgoing_stream
         .try_clone()
         .context("TCP stream was already closed")?;
 
     let outgoing_handle = outgoing(outgoing_stream);
-    let incomming_handle = incomming(incomming_stream);
+    let incoming_handle = incoming(incoming_stream);
 
     outgoing_handle?
         .join()
@@ -43,7 +41,7 @@ fn main() -> Result<()> {
         .context("Failed to spawn outgoing thread")?
         .context("Outgoing handle returned error")?;
 
-    incomming_handle
+    incoming_handle
         .join()
         .map_err(|_| anyhow!("Failed to spawn incoming thread, or thread panicked"))?;
 
@@ -58,75 +56,74 @@ fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
     let handle = thread::spawn(move || loop {
         let mut user_input: String = Default::default();
         io::stdin().read_line(&mut user_input)?;
-
-        //FIXME better error
         let trimmed_input = user_input.trim();
-
-        let message: MessageType = {
-            match user_input.split_whitespace().next().unwrap_or_default() {
-                ".quit" => {
-                    println!("{} Exiting!", current_time(),);
-                    process::exit(0)
-                }
-                ".file" => {
-                    //TODO cannot read file
-                    //TODO file size check
-                    //TODO create function for reading file
-                    MessageType::File(
+        if trimmed_input.is_empty() {
+            println!("{help_message}");
+        } else {
+            let message: MessageType = {
+                match trimmed_input.split_whitespace().next().unwrap_or_default() {
+                    ".quit" => {
+                        println!("{} Exiting!", current_time(),);
+                        process::exit(0)
+                    }
+                    ".file" => MessageType::File(
                         filename_from_input(trimmed_input)?.to_string(),
                         read_file(trimmed_input.to_string()),
-                    )
-                }
-                ".image" => {
-                    //TODO cannot read file
-                    //TODO file isn't image
-                    //TODO file size check
-                    MessageType::Image(image_to_png(filename_from_input(trimmed_input)?))
-                }
-                _ => {
-                    //TODO handle empty string ? write help
-                    if trimmed_input.is_empty() {
-                        println!("{help_message}");
+                    ),
+                    ".image" => {
+                        MessageType::Image(image_to_png(filename_from_input(trimmed_input)?))
                     }
-
-                    MessageType::Text(trimmed_input.to_string())
+                    _ => MessageType::Text(trimmed_input.to_string()),
                 }
+            };
+            if let Err(e) = outgoing_message(&mut stream, &message) {
+                eprintln!(
+                    "{} Failed to broadcast message: {message:?} -> {e}",
+                    current_time()
+                );
             }
         };
-
-        outgoing_message(&mut stream, &message);
     });
 
     Ok(handle)
 }
 
-fn incomming(mut stream: TcpStream) -> JoinHandle<()> {
+fn incoming(mut stream: TcpStream) -> JoinHandle<()> {
+    create_directory(DIRECTORY_FILES);
+    create_directory(DIRECTORY_IMAGES);
     thread::spawn(move || loop {
-        let response = match incoming_message(&mut stream) {
+        let message = match incoming_message(&mut stream) {
             Ok(res) => res,
             Err(e) => {
-                eprintln!("received message was invalid: {e}");
-                continue;
+                eprintln!("{} Stream inter: {e}", current_time());
+                //FIXME infinite loop
+                process::exit(1);
             }
         };
 
-        println!(
-            "{} server: {}",
-            current_time(),
-            match response {
-                MessageType::Text(text) => {
-                    //TEXT message
-                    text
-                }
-                MessageType::Image(_text) => {
-                    //TEXT message
-                    "image".to_string()
-                }
-                MessageType::File(_text, _content) => {
-                    //TEXT message
-                    "file".to_string()
-                }
+        match message {
+            MessageType::Text(text) => {
+                println!("{} {text:?}", current_time());
             }
-        );
+            MessageType::File(name, content) => {
+                //TODO unable to save
+                //TODO file already exist
+                fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
+                    .expect("Could not write file");
+                println!("{} Receiving {name}", current_time());
+            }
+            MessageType::Image(image) => {
+                //TODO unable to save
+                //TODO file already exist
+                let timestamp: String = std::time::UNIX_EPOCH
+                    .elapsed()
+                    .unwrap()
+                    .as_secs()
+                    .to_string();
+                fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, timestamp), &image)
+                    .expect("Could not write file");
+                println!("{} Receiving {timestamp}.png", current_time());
+            }
+        }
     })
 }

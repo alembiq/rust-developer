@@ -1,38 +1,26 @@
 use std::collections::HashMap;
 use std::env;
-use std::fs::{self};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::process;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::thread;
 
-#[allow(unused_imports)]
-use eyre::{bail, Context, Result};
+use eyre::{bail, Result};
+use parking_lot::Mutex;
 
-use shared13::{
-    create_directory, current_time, incoming_message, outgoing_message, server_address, MessageType,
-};
+use shared13::{current_time, incoming_message, outgoing_message, server_address, MessageType};
 
-static DIRECTORY_FILES: &str = "files";
-static DIRECTORY_IMAGES: &str = "images";
-
-fn main() {
+fn main() -> Result<()> {
     let server_address: String = server_address(env::args().collect());
-
     println!("{} Starting server on {}!", current_time(), server_address);
-    //create directorys to store incomming objects
-    create_directory(DIRECTORY_FILES);
-    create_directory(DIRECTORY_IMAGES);
-    listen_and_accept(server_address)
+    listen_and_accept(server_address)?;
+    Ok(())
 }
 
-/// Accepting communication from client and processing their messages.
-fn listen_and_accept(address: String) {
-    //FIXME error listening
+fn listen_and_accept(address: String) -> Result<()> {
     let listener = match TcpListener::bind(address) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("Unable to listen: {e}");
-            process::exit(1)
+            bail!("{} Unable to listen: {e}", current_time())
         }
     };
 
@@ -41,71 +29,64 @@ fn listen_and_accept(address: String) {
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
         let addr = stream.peer_addr().unwrap();
-        println!("accepted new stream");
+        println!("{} {} stream started", current_time(), addr);
 
         {
-            clients
-                .lock()
-                .unwrap()
-                .insert(addr, stream.try_clone().unwrap());
+            clients.lock().insert(addr, stream.try_clone().unwrap());
         }
 
         let clients_clone = clients.clone();
-        std::thread::spawn(move || loop {
-            let mut reply: String;
 
-            println!("trying to read incoming message");
-            //let message = match incoming_message(&mut clients_lock[&addr].try_clone().unwrap()) {
+        thread::spawn(move || loop {
+            let mut clients_lock = clients_clone.lock();
+            let mut peers_to_remove = vec![];
             let message = match incoming_message(&mut stream) {
                 Ok(msg) => msg,
                 Err(e) => {
-                    // complain if message is invalid
-                    eprintln!("message has invalid format: {e}");
-                    continue;
+                    eprintln!("{} {addr} stream interrupted: {e}", current_time());
+                    break;
                 }
             };
-            println!("message read: {message:?}");
-            let clients_lock = clients_clone.lock().unwrap();
-            // broadcast to other clients here ↓
+
+            // message other clients
+            for (peer_addr, peer_stream) in clients_lock.iter_mut() {
+                if *peer_addr == addr {
+                    continue;
+                }
+
+                if let Err(e) = outgoing_message(peer_stream, &message) {
+                    eprintln!(
+                        "{} failed to send message: {message:?} -> {e}",
+                        current_time()
+                    );
+                    peers_to_remove.push(peer_addr.clone());
+                }
+            }
+
+            for peer_addr in peers_to_remove {
+                clients_lock.remove(&peer_addr);
+            }
+
             drop(clients_lock);
 
-            //FIXME notify user connect/disconnect
-
+            //MESSAGE SNEAKPEAK
             match message {
                 MessageType::Text(text) => {
                     println!("{} {addr}: {text:?}", current_time());
-                    reply = "Received".into();
                 }
-                MessageType::File(name, content) => {
-                    //TODO unable to save
-                    //TODO file already exist
-                    reply = format!("{} saving: {}/{}", current_time(), DIRECTORY_FILES, name);
-                    println!("{reply}");
-                    fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
-                        .expect("Could not write file");
+                MessageType::File(name, _content) => {
+                    println!("{} {addr} sending: {}", current_time(), name);
                 }
-                MessageType::Image(image) => {
-                    //TODO unable to save
-                    //TODO file already exist
+                MessageType::Image(_image) => {
                     let timestamp: String = std::time::UNIX_EPOCH
                         .elapsed()
                         .unwrap()
                         .as_secs()
                         .to_string();
-                    reply = format!(
-                        "{} saving: {}/{}.png",
-                        current_time(),
-                        DIRECTORY_IMAGES,
-                        timestamp
-                    );
-                    println!("{reply}");
-                    fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, timestamp), &image)
-                        .expect("Could not write file");
+                    println!("{} {addr} sending: {}.png", current_time(), timestamp);
                 }
             }
-            let response = MessageType::Text(format!("{} 󰸞", reply));
-            outgoing_message(&mut stream, &response);
-            reply.clear();
         });
     }
+    Ok(())
 }
