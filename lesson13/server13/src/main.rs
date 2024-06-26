@@ -38,8 +38,6 @@ fn listen_and_accept(address: String) -> Result<()> {
         let clients_clone = clients.clone();
 
         thread::spawn(move || loop {
-            let mut clients_lock = clients_clone.lock();
-            let mut peers_to_remove = vec![];
             let message = match incoming_message(&mut stream) {
                 Ok(msg) => msg,
                 Err(e) => {
@@ -49,6 +47,8 @@ fn listen_and_accept(address: String) -> Result<()> {
             };
 
             // message other clients
+            let mut clients_lock = clients_clone.lock();
+            let mut peers_to_remove = vec![];
             for (peer_addr, peer_stream) in clients_lock.iter_mut() {
                 if *peer_addr == addr {
                     continue;
