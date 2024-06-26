@@ -4,15 +4,14 @@ use std::net::TcpStream;
 use std::process;
 use std::thread::{self, JoinHandle};
 
-#[allow(unused_imports)]
-use eyre::{bail, Context, Error};
+use eyre::{anyhow, bail, Context, Error, Result};
 
 use shared13::{
     current_time, filename_from_input, image_to_png, incoming_message, outgoing_message, read_file,
     server_address, MessageType,
 };
 
-fn main() {
+fn main() -> Result<()> {
     let server_address: String = server_address(env::args().collect());
 
     println!(
@@ -30,28 +29,36 @@ fn main() {
             process::exit(1)
         }
     };
-    let incomming_stream = outgoing_stream.try_clone().unwrap();
+
+    let incomming_stream = outgoing_stream
+        .try_clone()
+        .context("TCP stream was already closed")?;
 
     let outgoing_handle = outgoing(outgoing_stream);
     let incomming_handle = incomming(incomming_stream);
 
-    if outgoing_handle.join().is_err() {
-        println!("Failed to spawn outgoing thread");
-    };
+    outgoing_handle?
+        .join()
+        .map_err(|_| anyhow!("Thread panicked"))
+        .context("Failed to spawn outgoing thread")?
+        .context("Outgoing handle returned error")?;
 
-    if incomming_handle.join().is_err() {
-        println!("Failed to spawn incomming thread");
-    };
+    incomming_handle
+        .join()
+        .map_err(|_| anyhow!("Failed to spawn incoming thread, or thread panicked"))?;
+
+    Ok(())
 }
 
-fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
+fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
     let help_message = "What to send? (text / .image <filename> / .file <filename> / .quit): ";
+
     println!("{help_message}");
-    thread::spawn(move || loop {
+
+    let handle = thread::spawn(move || loop {
         let mut user_input: String = Default::default();
-        io::stdin()
-            .read_line(&mut user_input)
-            .expect("Failed to read line");
+        io::stdin().read_line(&mut user_input)?;
+
         //FIXME better error
         let trimmed_input = user_input.trim();
 
@@ -66,7 +73,7 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
                     //TODO file size check
                     //TODO create function for reading file
                     MessageType::File(
-                        filename_from_input(trimmed_input).to_string(),
+                        filename_from_input(trimmed_input)?.to_string(),
                         read_file(trimmed_input.to_string()),
                     )
                 }
@@ -74,7 +81,7 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
                     //TODO cannot read file
                     //TODO file isn't image
                     //TODO file size check
-                    MessageType::Image(image_to_png(filename_from_input(trimmed_input)))
+                    MessageType::Image(image_to_png(filename_from_input(trimmed_input)?))
                 }
                 _ => {
                     //TODO handle empty string ? write help
@@ -88,12 +95,21 @@ fn outgoing(mut stream: TcpStream) -> JoinHandle<()> {
         };
 
         outgoing_message(&mut stream, &message);
-    })
+    });
+
+    Ok(handle)
 }
 
 fn incomming(mut stream: TcpStream) -> JoinHandle<()> {
     thread::spawn(move || loop {
-        let response = incoming_message(&mut stream);
+        let response = match incoming_message(&mut stream) {
+            Ok(res) => res,
+            Err(e) => {
+                eprintln!("received message was invalid: {e}");
+                continue;
+            }
+        };
+
         println!(
             "{} server: {}",
             current_time(),

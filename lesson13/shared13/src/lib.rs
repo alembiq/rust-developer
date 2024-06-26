@@ -17,13 +17,16 @@ pub enum ErrorMessage {
     FileNotNamed(String),
     #[error("File {0} not found.")]
     FileNotFound(String),
-    #[error("Failed to read from file.")]
-    FileReadFailed(#[from] std::io::Error),
     #[error("File {0} bigger than allowed size {1}.")]
     FileTooBig(String, u32),
 
     #[error("Unsupported image format.")]
     ImageUnsupported(#[from] image::ImageError),
+
+    #[error("Failed to read message or file")]
+    IoError(#[from] std::io::Error),
+    #[error("Message has invalid format")]
+    InvalidMessageFormat(#[from] ciborium::de::Error<std::io::Error>),
 }
 
 pub fn current_time() -> String {
@@ -62,13 +65,14 @@ pub enum MessageType {
     Text(String),
 }
 
-pub fn incoming_message(stream: &mut TcpStream) -> MessageType {
+pub fn incoming_message(stream: &mut TcpStream) -> Result<MessageType, ErrorMessage> {
     let mut len_bytes = [0; 4];
-    stream.read_exact(&mut len_bytes).unwrap();
+    stream.read_exact(&mut len_bytes)?;
     let len = u32::from_be_bytes(len_bytes) as usize;
     let mut buffer = vec![0; len];
-    stream.read_exact(&mut buffer).unwrap();
-    ciborium::from_reader(&mut &buffer[..]).unwrap()
+    stream.read_exact(&mut buffer)?;
+
+    Ok(ciborium::from_reader(&mut &buffer[..])?)
 }
 
 pub fn outgoing_message(stream: &mut TcpStream, message: &MessageType) {
@@ -96,16 +100,13 @@ pub fn create_directory(directory: &str) {
         println!("{} creating {} directory", current_time(), { directory });
     }
 }
-// pub fn filename_from_input(user_input: &str) -> Result<&str, ErrorMessage> {
-//     let filename = user_input.split(' ').nth(1).expect("missing filename");
-//     if filename.is_empty() {
-//         return  Err(ErrorMessage::FileNotFound(filename.to_string()));
-//     }
-//     Ok(filename)
-// }
 
-pub fn filename_from_input(user_input: &str) -> &str {
-    user_input.split(' ').nth(1).expect("missing filename")
+pub fn filename_from_input(user_input: &str) -> Result<&str, ErrorMessage> {
+    let filename = user_input.split(' ').nth(1).expect("missing filename");
+    if filename.is_empty() {
+        return Err(ErrorMessage::FileNotFound(filename.to_string()));
+    }
+    Ok(filename)
 }
 
 pub fn image_to_png(file: &str) -> Vec<u8> {
