@@ -1,0 +1,13 @@
+[package]
+name = "lesson15"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ciborium = "0.2.2"
+image = "0.25.1"
+serde = { version = "1.0.202", features = ["derive"] }
+thiserror = "1.0.61"
+time = "0.3.36"
+parking_lot = "0.12.3"
+eyre = "0.6.12"
