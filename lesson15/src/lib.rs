@@ -1,14 +1,16 @@
+use image::codecs::png::PngEncoder;
+use image::ImageEncoder;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+// use tokio::io::{AsyncReadExt, AsyncWriteExt};
+// use tokio::net::TcpStream;
+
 use std::error::Error;
 use std::fs::{self};
 use std::io::{Cursor, Read, Write};
 use std::net::{IpAddr, TcpStream};
 use std::path::Path;
 use std::process;
-
-use image::codecs::png::PngEncoder;
-use image::ImageEncoder;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 pub static DEFAULT_ADDRESS: &str = "127.0.0.1:11111";
 pub static DIRECTORY_FILES: &str = "files";
@@ -30,7 +32,7 @@ pub enum ErrorMessage {
     InvalidMessageFormat(#[from] ciborium::de::Error<std::io::Error>),
 }
 
-pub fn current_time() -> String {
+pub fn timestamp() -> String {
     std::time::UNIX_EPOCH
         .elapsed()
         .unwrap()
@@ -65,7 +67,7 @@ pub enum MessageType {
     Text(String),
 }
 
-pub fn incoming_message(stream: &mut TcpStream) -> Result<MessageType, ErrorMessage> {
+pub fn message_incomming(stream: &mut TcpStream) -> Result<MessageType, ErrorMessage> {
     let mut len_bytes = [0; 4];
     stream.read_exact(&mut len_bytes)?;
     let len = u32::from_be_bytes(len_bytes) as usize;
@@ -75,7 +77,7 @@ pub fn incoming_message(stream: &mut TcpStream) -> Result<MessageType, ErrorMess
     Ok(ciborium::from_reader(&mut &buffer[..])?)
 }
 
-pub fn outgoing_message(
+pub fn message_outgoing(
     stream: &mut TcpStream,
     message: &MessageType,
 ) -> Result<(), Box<dyn Error>> {
@@ -89,16 +91,16 @@ pub fn outgoing_message(
 
 /// FILE HANDLING
 
-pub fn read_file(input: String) -> Vec<u8> {
+pub fn file_read(input: String) -> Vec<u8> {
     let mut filename = input.split_whitespace();
     let filename: &str = filename.nth(1).expect("missing filename");
     std::fs::read(format!("./{}", filename)).unwrap()
 }
 
-pub fn create_directory(directory: &str) {
+pub fn directory_create(directory: &str) {
     if !Path::new(directory).is_dir() {
         fs::create_dir(directory).unwrap();
-        println!("{} creating {} directory", current_time(), { directory });
+        println!("{} creating {} directory", timestamp(), { directory });
     }
 }
 

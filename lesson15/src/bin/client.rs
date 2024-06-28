@@ -1,3 +1,10 @@
+use eyre::{anyhow, bail, Context, Result};
+
+use lesson15::{
+    directory_create, file_read, filename_from_input, image_to_png, message_incomming,
+    message_outgoing, server_address, timestamp, MessageType, DIRECTORY_FILES, DIRECTORY_IMAGES,
+};
+
 use std::env;
 use std::fs;
 use std::io;
@@ -5,21 +12,11 @@ use std::net::TcpStream;
 use std::process;
 use std::thread::{self, JoinHandle};
 
-use eyre::{anyhow, bail, Context, Result};
-
-use lesson15::{
-    create_directory, current_time, filename_from_input, image_to_png, incoming_message,
-    outgoing_message, read_file, server_address, MessageType, DIRECTORY_FILES, DIRECTORY_IMAGES,
-};
-
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let server_address: String = server_address(env::args().collect());
 
-    println!(
-        "{} Client connecting to {}!",
-        current_time(),
-        server_address
-    );
+    println!("{} Client connecting to {}!", timestamp(), server_address);
 
     let outgoing_stream = match TcpStream::connect(server_address) {
         Ok(s) => s,
@@ -31,24 +28,22 @@ fn main() -> Result<()> {
     let incoming_stream = outgoing_stream
         .try_clone()
         .context("TCP stream was already closed")?;
+    let incoming_async = tokio::spawn(async {
+        read_from_stream(incoming_stream);
+    });
+    incoming_async.await.unwrap();
 
-    let outgoing_handle = outgoing(outgoing_stream);
-    let incoming_handle = incoming(incoming_stream);
-
+    let outgoing_handle = send_to_stream(outgoing_stream);
     outgoing_handle?
         .join()
         .map_err(|_| anyhow!("Thread panicked"))
         .context("Failed to spawn outgoing thread")?
         .context("Outgoing handle returned error")?;
 
-    incoming_handle
-        .join()
-        .map_err(|_| anyhow!("Failed to spawn incoming thread, or thread panicked"))?;
-
     Ok(())
 }
 
-fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
+fn send_to_stream(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
     let help_message = "What to send? (text / .image <filename> / .file <filename> / .quit): ";
 
     println!("{help_message}");
@@ -63,12 +58,12 @@ fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
             let message: MessageType = {
                 match trimmed_input.split_whitespace().next().unwrap_or_default() {
                     ".quit" => {
-                        println!("{} Exiting!", current_time(),);
+                        println!("{} Exiting!", timestamp(),);
                         process::exit(0)
                     }
                     ".file" => MessageType::File(
                         filename_from_input(trimmed_input)?.to_string(),
-                        read_file(trimmed_input.to_string()),
+                        file_read(trimmed_input.to_string()),
                     ),
                     ".image" => {
                         MessageType::Image(image_to_png(filename_from_input(trimmed_input)?))
@@ -76,10 +71,10 @@ fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
                     _ => MessageType::Text(trimmed_input.to_string()),
                 }
             };
-            if let Err(e) = outgoing_message(&mut stream, &message) {
+            if let Err(e) = message_outgoing(&mut stream, &message) {
                 eprintln!(
                     "{} Failed to broadcast message: {message:?} -> {e}",
-                    current_time()
+                    timestamp()
                 );
             }
         };
@@ -88,14 +83,14 @@ fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
     Ok(handle)
 }
 
-fn incoming(mut stream: TcpStream) -> JoinHandle<()> {
-    create_directory(DIRECTORY_FILES);
-    create_directory(DIRECTORY_IMAGES);
+fn read_from_stream(mut stream: TcpStream) -> JoinHandle<()> {
+    directory_create(DIRECTORY_FILES);
+    directory_create(DIRECTORY_IMAGES);
     thread::spawn(move || loop {
-        let message = match incoming_message(&mut stream) {
+        let message = match message_incomming(&mut stream) {
             Ok(res) => res,
             Err(e) => {
-                eprintln!("{} Stream inter: {e}", current_time());
+                eprintln!("{} Stream inter: {e}", timestamp());
                 //FIXME infinite loop
                 process::exit(1);
             }
@@ -103,26 +98,26 @@ fn incoming(mut stream: TcpStream) -> JoinHandle<()> {
 
         match message {
             MessageType::Text(text) => {
-                println!("{} {text:?}", current_time());
+                println!("{} {text:?}", timestamp());
             }
             MessageType::File(name, content) => {
                 //TODO unable to save
                 //TODO file already exist
                 fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
                     .expect("Could not write file");
-                println!("{} Receiving {name}", current_time());
+                println!("{} Receiving {name}", timestamp());
             }
             MessageType::Image(image) => {
                 //TODO unable to save
                 //TODO file already exist
-                let timestamp: String = std::time::UNIX_EPOCH
+                let image_file: String = std::time::UNIX_EPOCH
                     .elapsed()
                     .unwrap()
                     .as_secs()
                     .to_string();
-                fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, timestamp), &image)
+                fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, image_file), &image)
                     .expect("Could not write file");
-                println!("{} Receiving {timestamp}.png", current_time());
+                println!("{} Receiving {image_file}.png", timestamp());
             }
         }
     })
