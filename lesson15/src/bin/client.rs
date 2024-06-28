@@ -1,8 +1,9 @@
 use eyre::{anyhow, bail, Context, Result};
 
 use lesson15::{
-    directory_create, file_read, filename_from_input, image_to_png, message_incomming,
-    message_outgoing, server_address, timestamp, MessageType, DIRECTORY_FILES, DIRECTORY_IMAGES,
+    async_file_read, async_file_write, directory_create, filename_from_input, image_to_png,
+    message_incoming, message_outgoing, server_address, timestamp, MessageType, DIRECTORY_FILES,
+    DIRECTORY_IMAGES,
 };
 
 use std::env;
@@ -63,7 +64,7 @@ fn send_to_stream(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
                     }
                     ".file" => MessageType::File(
                         filename_from_input(trimmed_input)?.to_string(),
-                        file_read(trimmed_input.to_string()),
+                        async_file_read(trimmed_input),
                     ),
                     ".image" => {
                         MessageType::Image(image_to_png(filename_from_input(trimmed_input)?))
@@ -87,7 +88,7 @@ fn read_from_stream(mut stream: TcpStream) -> JoinHandle<()> {
     directory_create(DIRECTORY_FILES);
     directory_create(DIRECTORY_IMAGES);
     thread::spawn(move || loop {
-        let message = match message_incomming(&mut stream) {
+        let message = match message_incoming(&mut stream) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("{} Stream inter: {e}", timestamp());
@@ -101,15 +102,9 @@ fn read_from_stream(mut stream: TcpStream) -> JoinHandle<()> {
                 println!("{} {text:?}", timestamp());
             }
             MessageType::File(name, content) => {
-                //TODO unable to save
-                //TODO file already exist
-                fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
-                    .expect("Could not write file");
-                println!("{} Receiving {name}", timestamp());
+                async_file_write(format!("{}/{}", DIRECTORY_FILES, name), content);
             }
             MessageType::Image(image) => {
-                //TODO unable to save
-                //TODO file already exist
                 let image_file: String = std::time::UNIX_EPOCH
                     .elapsed()
                     .unwrap()

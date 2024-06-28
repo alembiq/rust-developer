@@ -2,8 +2,7 @@ use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-// use tokio::io::{AsyncReadExt, AsyncWriteExt};
-// use tokio::net::TcpStream;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use std::error::Error;
 use std::fs::{self};
@@ -67,7 +66,7 @@ pub enum MessageType {
     Text(String),
 }
 
-pub fn message_incomming(stream: &mut TcpStream) -> Result<MessageType, ErrorMessage> {
+pub fn message_incoming(stream: &mut TcpStream) -> Result<MessageType, ErrorMessage> {
     let mut len_bytes = [0; 4];
     stream.read_exact(&mut len_bytes)?;
     let len = u32::from_be_bytes(len_bytes) as usize;
@@ -91,10 +90,24 @@ pub fn message_outgoing(
 
 /// FILE HANDLING
 
-pub fn file_read(input: String) -> Vec<u8> {
+#[tokio::main]
+pub async fn async_file_read(input: &str) -> Vec<u8> {
     let mut filename = input.split_whitespace();
     let filename: &str = filename.nth(1).expect("missing filename");
-    std::fs::read(format!("./{}", filename)).unwrap()
+    let mut file = tokio::fs::File::open(format!("./{}", filename))
+        .await
+        .unwrap();
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).await.unwrap();
+    contents
+}
+
+#[tokio::main]
+pub async fn async_file_write(filename: String, data: Vec<u8>) {
+    let mut file = tokio::fs::File::create(format!("./{}", filename))
+        .await
+        .unwrap();
+    file.write_all(data.as_ref()).await.unwrap();
 }
 
 pub fn directory_create(directory: &str) {

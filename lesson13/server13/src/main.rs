@@ -59,7 +59,7 @@ fn listen_and_accept(address: String) -> Result<()> {
                         "{} failed to send message: {message:?} -> {e}",
                         current_time()
                     );
-                    peers_to_remove.push(peer_addr.clone());
+                    peers_to_remove.push(*peer_addr);
                 }
             }
 
