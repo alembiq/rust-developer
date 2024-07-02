@@ -1,14 +1,19 @@
-use std::error::Error;
-use std::fs::{self};
-use std::io::{Cursor, Read, Write};
-use std::net::{IpAddr, TcpStream};
-use std::path::Path;
-use std::process;
-
+// use anyhow::{Context, Result}; //FIXME remove
+// use bincode;
 use image::codecs::png::PngEncoder;
 use image::ImageEncoder;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+// use tokio::net::TcpStream;
+
+use std::error::Error;
+use std::fs::{self};
+use std::io::{Cursor, Read, Write};
+use std::marker::Unpin;
+use std::net::{IpAddr, TcpStream as TcpSync};
+use std::path::Path;
+use std::process;
 
 pub static DEFAULT_ADDRESS: &str = "127.0.0.1:11111";
 pub static DIRECTORY_FILES: &str = "files";
@@ -30,7 +35,7 @@ pub enum ErrorMessage {
     InvalidMessageFormat(#[from] ciborium::de::Error<std::io::Error>),
 }
 
-pub fn current_time() -> String {
+pub fn timestamp() -> String {
     std::time::UNIX_EPOCH
         .elapsed()
         .unwrap()
@@ -58,14 +63,56 @@ pub fn server_address(args: Vec<String>) -> String {
 
 /// MESSAGE HANDLING  maybe redo as implementations of MessageType
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
     File(String, Vec<u8>), // Filename and its content as bytes
     Image(Vec<u8>),
     Text(String),
 }
 
-pub fn incoming_message(stream: &mut TcpStream) -> Result<MessageType, ErrorMessage> {
+impl MessageType {
+    pub async fn recv<T: AsyncReadExt + Unpin>(stream: &mut T) -> Result<Self, ErrorMessage> {
+        let mut length_bytes = [0; 4];
+
+        stream
+            .read_exact(&mut length_bytes)
+            .await
+            .expect("{timestamp()} Failed to read length");
+
+        let length = u32::from_be_bytes(length_bytes);
+
+        let mut buf = vec![0; length as usize];
+
+        stream
+            .read_exact(&mut buf)
+            .await
+            .expect("{timestamp()} Failed to read message");
+
+        Ok(bincode::deserialize(&buf).expect("{timestamp()} Unable to deserialize message."))
+    }
+
+    pub async fn send<T: AsyncWriteExt + Unpin + AsyncReadExt>(
+        &self,
+        stream: &mut T,
+    ) -> Result<(), ErrorMessage> {
+        let serialized: Vec<u8> =
+            bincode::serialize(&self).expect("{timestamp()} Failed to serialize message");
+
+        let length = (serialized.len() as u32).to_be_bytes();
+
+        stream
+            .write_all(&length)
+            .await
+            .expect("{timestamp()} Failed to send length");
+        stream
+            .write_all(&serialized)
+            .await
+            .expect("{timestamp()} Failed to send message");
+        Ok(())
+    }
+}
+
+pub fn message_incoming(stream: &mut TcpSync) -> Result<MessageType, ErrorMessage> {
     let mut len_bytes = [0; 4];
     stream.read_exact(&mut len_bytes)?;
     let len = u32::from_be_bytes(len_bytes) as usize;
@@ -75,10 +122,7 @@ pub fn incoming_message(stream: &mut TcpStream) -> Result<MessageType, ErrorMess
     Ok(ciborium::from_reader(&mut &buffer[..])?)
 }
 
-pub fn outgoing_message(
-    stream: &mut TcpStream,
-    message: &MessageType,
-) -> Result<(), Box<dyn Error>> {
+pub fn message_outgoing(stream: &mut TcpSync, message: &MessageType) -> Result<(), Box<dyn Error>> {
     let mut buffer = Vec::new();
     ciborium::into_writer(message, &mut buffer)?;
     let len = buffer.len() as u32;
@@ -89,16 +133,30 @@ pub fn outgoing_message(
 
 /// FILE HANDLING
 
-pub fn read_file(input: String) -> Vec<u8> {
+#[tokio::main]
+pub async fn async_file_read(input: &str) -> Vec<u8> {
     let mut filename = input.split_whitespace();
     let filename: &str = filename.nth(1).expect("missing filename");
-    std::fs::read(format!("./{}", filename)).unwrap()
+    let mut file = tokio::fs::File::open(format!("./{}", filename))
+        .await
+        .unwrap();
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).await.unwrap();
+    contents
 }
 
-pub fn create_directory(directory: &str) {
+#[tokio::main]
+pub async fn async_file_write(filename: String, data: Vec<u8>) {
+    let mut file = tokio::fs::File::create(format!("./{}", filename))
+        .await
+        .unwrap();
+    file.write_all(data.as_ref()).await.unwrap();
+}
+
+pub fn directory_create(directory: &str) {
     if !Path::new(directory).is_dir() {
         fs::create_dir(directory).unwrap();
-        println!("{} creating {} directory", current_time(), { directory });
+        println!("{} creating {} directory", timestamp(), { directory });
     }
 }
 
