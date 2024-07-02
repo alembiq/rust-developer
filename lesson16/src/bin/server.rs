@@ -7,11 +7,11 @@ use std::thread;
 use eyre::{bail, Result};
 use parking_lot::Mutex;
 
-use lesson16::{current_time, incoming_message, outgoing_message, server_address, MessageType};
+use lesson16::{incoming_message, outgoing_message, server_address, timestamp, MessageType};
 
 fn main() -> Result<()> {
     let server_address: String = server_address(env::args().collect());
-    println!("{} Starting server on {}!", current_time(), server_address);
+    println!("{} Starting server on {}!", timestamp(), server_address);
     listen_and_accept(server_address)?;
     Ok(())
 }
@@ -20,7 +20,7 @@ fn listen_and_accept(address: String) -> Result<()> {
     let listener = match TcpListener::bind(address) {
         Ok(l) => l,
         Err(e) => {
-            bail!("{} Unable to listen: {e}", current_time())
+            bail!("{} Unable to listen: {e}", timestamp())
         }
     };
 
@@ -29,7 +29,7 @@ fn listen_and_accept(address: String) -> Result<()> {
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
         let addr = stream.peer_addr().unwrap();
-        println!("{} {} stream started", current_time(), addr);
+        println!("{} {} stream started", timestamp(), addr);
 
         {
             clients.lock().insert(addr, stream.try_clone().unwrap());
@@ -41,7 +41,7 @@ fn listen_and_accept(address: String) -> Result<()> {
             let message = match incoming_message(&mut stream) {
                 Ok(msg) => msg,
                 Err(e) => {
-                    eprintln!("{} {addr} stream interrupted: {e}", current_time());
+                    eprintln!("{} {addr} stream interrupted: {e}", timestamp());
                     break;
                 }
             };
@@ -55,10 +55,7 @@ fn listen_and_accept(address: String) -> Result<()> {
                 }
 
                 if let Err(e) = outgoing_message(peer_stream, &message) {
-                    eprintln!(
-                        "{} failed to send message: {message:?} -> {e}",
-                        current_time()
-                    );
+                    eprintln!("{} failed to send message: {message:?} -> {e}", timestamp());
                     peers_to_remove.push(*peer_addr);
                 }
             }
@@ -72,18 +69,18 @@ fn listen_and_accept(address: String) -> Result<()> {
             //MESSAGE SNEAKPEAK
             match message {
                 MessageType::Text(text) => {
-                    println!("{} {addr}: {text:?}", current_time());
+                    println!("{} {addr}: {text:?}", timestamp());
                 }
                 MessageType::File(name, _content) => {
-                    println!("{} {addr} sending: {}", current_time(), name);
+                    println!("{} {addr} sending: {}", timestamp(), name);
                 }
                 MessageType::Image(_image) => {
-                    let timestamp: String = std::time::UNIX_EPOCH
+                    let filename: String = std::time::UNIX_EPOCH
                         .elapsed()
                         .unwrap()
                         .as_secs()
                         .to_string();
-                    println!("{} {addr} sending: {}.png", current_time(), timestamp);
+                    println!("{} {addr} sending: {}.png", timestamp(), filename);
                 }
             }
         });

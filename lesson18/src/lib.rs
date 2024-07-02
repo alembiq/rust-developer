@@ -30,7 +30,7 @@ pub enum ErrorMessage {
     InvalidMessageFormat(#[from] ciborium::de::Error<std::io::Error>),
 }
 
-pub fn current_time() -> String {
+pub fn timestamp() -> String {
     std::time::UNIX_EPOCH
         .elapsed()
         .unwrap()
@@ -98,7 +98,7 @@ pub fn read_file(input: String) -> Vec<u8> {
 pub fn create_directory(directory: &str) {
     if !Path::new(directory).is_dir() {
         fs::create_dir(directory).unwrap();
-        println!("{} creating {} directory", current_time(), { directory });
+        println!("{} creating {} directory", timestamp(), { directory });
     }
 }
 

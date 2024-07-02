@@ -8,18 +8,14 @@ use std::thread::{self, JoinHandle};
 use eyre::{anyhow, bail, Context, Result};
 
 use lesson16::{
-    create_directory, current_time, filename_from_input, image_to_png, incoming_message,
-    outgoing_message, read_file, server_address, MessageType, DIRECTORY_FILES, DIRECTORY_IMAGES,
+    create_directory, filename_from_input, image_to_png, incoming_message, outgoing_message,
+    read_file, server_address, timestamp, MessageType, DIRECTORY_FILES, DIRECTORY_IMAGES,
 };
 
 fn main() -> Result<()> {
     let server_address: String = server_address(env::args().collect());
 
-    println!(
-        "{} Client connecting to {}!",
-        current_time(),
-        server_address
-    );
+    println!("{} Client connecting to {}!", timestamp(), server_address);
 
     let outgoing_stream = match TcpStream::connect(server_address) {
         Ok(s) => s,
@@ -63,7 +59,7 @@ fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
             let message: MessageType = {
                 match trimmed_input.split_whitespace().next().unwrap_or_default() {
                     ".quit" => {
-                        println!("{} Exiting!", current_time(),);
+                        println!("{} Exiting!", timestamp(),);
                         process::exit(0)
                     }
                     ".file" => MessageType::File(
@@ -79,7 +75,7 @@ fn outgoing(mut stream: TcpStream) -> Result<JoinHandle<Result<()>>> {
             if let Err(e) = outgoing_message(&mut stream, &message) {
                 eprintln!(
                     "{} Failed to broadcast message: {message:?} -> {e}",
-                    current_time()
+                    timestamp()
                 );
             }
         };
@@ -95,7 +91,7 @@ fn incoming(mut stream: TcpStream) -> JoinHandle<()> {
         let message = match incoming_message(&mut stream) {
             Ok(res) => res,
             Err(e) => {
-                eprintln!("{} Stream inter: {e}", current_time());
+                eprintln!("{} Stream inter: {e}", timestamp());
                 //FIXME infinite loop
                 process::exit(1);
             }
@@ -103,26 +99,26 @@ fn incoming(mut stream: TcpStream) -> JoinHandle<()> {
 
         match message {
             MessageType::Text(text) => {
-                println!("{} {text:?}", current_time());
+                println!("{} {text:?}", timestamp());
             }
             MessageType::File(name, content) => {
                 //TODO unable to save
                 //TODO file already exist
                 fs::write(format!("{}/{}", DIRECTORY_FILES, name), content)
                     .expect("Could not write file");
-                println!("{} Receiving {name}", current_time());
+                println!("{} Receiving {name}", timestamp());
             }
             MessageType::Image(image) => {
                 //TODO unable to save
                 //TODO file already exist
-                let timestamp: String = std::time::UNIX_EPOCH
+                let filename: String = std::time::UNIX_EPOCH
                     .elapsed()
                     .unwrap()
                     .as_secs()
                     .to_string();
-                fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, timestamp), &image)
+                fs::write(format!("{}/{}.png", DIRECTORY_IMAGES, filename), &image)
                     .expect("Could not write file");
-                println!("{} Receiving {timestamp}.png", current_time());
+                println!("{} Receiving {filename}.png", timestamp());
             }
         }
     })
