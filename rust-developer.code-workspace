@@ -6,14 +6,26 @@
     ],
 
     "settings": {
-        // "rust-analyzer.linkedProjects": [
-        //     "./lesson05/Cargo.toml",
-        //     "./lesson02/Cargo.toml",
-        //     "./lesson01/Cargo.toml"
-        // ],
         "terminal.explorerKind": "external",
         "terminal.integrated.accessibleViewFocusOnCommandExecution": false,
         "terminal.sourceControlRepositoriesKind": "external",
-        "todo-tree.tree.scanMode": "current file"
+        "todo-tree.tree.scanMode": "current file",
+        "rust-analyzer.linkedProjects": [
+            "./lesson18/Cargo.toml",
+            "./lesson17/Cargo.toml",
+            "./lesson16/Cargo.toml",
+            "./lesson15/Cargo.toml",
+            "./lesson13/shared13/Cargo.toml",
+            "./lesson13/server13/Cargo.toml",
+            "./lesson13/client13/Cargo.toml",
+            "./lesson11/shared11/Cargo.toml",
+            "./lesson11/server11/Cargo.toml",
+            "./lesson11/client11/Cargo.toml",
+            "./lesson09/Cargo.toml",
+            "./lesson07/Cargo.toml",
+            "./lesson05/Cargo.toml",
+            "./lesson02/Cargo.toml",
+            "./lesson01/Cargo.toml"
+        ]
     }
 }

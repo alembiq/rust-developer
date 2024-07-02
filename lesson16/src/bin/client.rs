@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+#![doc(issue_tracker_base_url = "https://github.com/alembiq/rust-developer/issues/")]
+//! Client for simple CLI chat
+
 use std::env;
 use std::fs;
 use std::io;

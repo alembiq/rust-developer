@@ -45,16 +45,16 @@ pub fn timestamp() -> String {
 
 /// CONNECTIVITY
 
-pub fn is_valid_ip(ip: &str) -> bool {
-    ip.parse::<IpAddr>().is_ok()
-}
-
 pub fn server_address(args: Vec<String>) -> String {
+    let ip: Vec<&str> = args[1].split(':').collect();
+
     if args.len() > 1 && args[1] == "help" {
         println!("=============== USAGE ===============");
         println!("{} IPaddress:port", args[0]);
         process::exit(0)
-    } else if args.len() > 1 && args[1].parse::<IpAddr>().is_ok() {
+    } else if args.len() > 1 {
+        assert!(ip[0].parse::<IpAddr>().is_ok());
+        assert!((1..65535).contains(&ip[1].parse::<i32>().unwrap()));
         args[1].clone()
     } else {
         DEFAULT_ADDRESS.to_string()

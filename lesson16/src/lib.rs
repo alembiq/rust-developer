@@ -68,9 +68,13 @@ pub fn server_address(args: Vec<String>) -> String {
         process::exit(0)
     } else if args.len() > 1 {
         let ip: Vec<&str> = args[1].split(':').collect();
-        assert!(ip[0].parse::<IpAddr>().is_ok());
-        assert!((1..65535).contains(&ip[1].parse::<i32>().unwrap()));
-        args[1].clone()
+        if ip.len() > 1 {
+            assert!(ip[0].parse::<IpAddr>().is_ok());
+            assert!((1..=65535).contains(&ip[1].parse::<i32>().unwrap()));
+            args[1].to_string()
+        } else {
+            DEFAULT_ADDRESS.to_string()
+        }
     } else {
         DEFAULT_ADDRESS.to_string()
     }
@@ -148,4 +152,32 @@ pub fn image_to_png(file: &str) -> Vec<u8> {
         img.color().into(),
     );
     output.into_inner() as Vec<u8>
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{server_address, DEFAULT_ADDRESS};
+
+    #[test]
+    fn valid_server_address() {
+        let mut address: Vec<String> = vec![" ".to_string()];
+        assert_eq!(server_address(address.clone()), DEFAULT_ADDRESS);
+        address.push("127.0.1.1:1234".to_string());
+        assert_eq!(server_address(address.clone()), "127.0.1.1:1234");
+        address.remove(1);
+        address.push("1.0.0.0:1".to_string());
+        assert_eq!(server_address(address.clone()), "1.0.0.0:1");
+        address.remove(1);
+        address.push("255.255.255.255:65535".to_string());
+        assert_eq!(server_address(address.clone()), "255.255.255.255:65535");
+
+        address.remove(1);
+        address.push("127.0.0.1".to_string());
+        println!("{}", server_address(address.clone()));
+        assert_eq!(server_address(address.clone()), DEFAULT_ADDRESS,);
+        address.remove(1);
+        address.push("whatever".to_string());
+        println!("{}", server_address(address.clone()));
+        assert_eq!(server_address(address.clone()), DEFAULT_ADDRESS,);
+    }
 }

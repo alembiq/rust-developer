@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+#![doc(issue_tracker_base_url = "https://github.com/alembiq/rust-developer/issues/")]
+//! Server for simple CLI chat
+
 use std::collections::HashMap;
 use std::env;
 use std::net::{SocketAddr, TcpListener, TcpStream};
