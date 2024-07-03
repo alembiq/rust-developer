@@ -4,4 +4,4 @@ global:
 scrape_configs:
   - job_name: 'rust_application'
     static_configs:
-    - targets: ['<url>:10002']
+    - targets: ['<url>:11112']

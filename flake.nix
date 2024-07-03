@@ -22,8 +22,8 @@
             openssl
             pkg-config
             bacon
-            # rust-bin.stable.latest.default
-            rust-bin.beta.latest.default
+            rust-bin.stable.latest.default
+            # rust-bin.beta.latest.default
           ];
         };
       }
