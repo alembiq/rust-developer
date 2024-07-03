@@ -12,7 +12,9 @@ use eyre::{bail, Result};
 use parking_lot::Mutex;
 // use prometheus::{Gauge, Opts, Registry, Counter};
 use lazy_static::lazy_static;
-use prometheus::{self, register_int_counter, register_int_gauge, Encoder, IntCounter, IntGauge, TextEncoder};
+use prometheus::{
+    self, register_int_counter, register_int_gauge, Encoder, IntCounter, IntGauge, TextEncoder,
+};
 
 use lesson18::{incoming_message, outgoing_message, server_address, timestamp, MessageType};
 

@@ -1,3 +1,14 @@
+# Simple CLI chat app
+
+Server and client that can send messages, files and images (yes, those are also files, but we're converting them to PNG by default).
+
+## Usage
+You can simply run the `server` and it will start listening on 127.0.0.1:11111. Or you can start it on a specific IP and port - `server18 10.0.42.101:1234`. The same parameter works also for the `client`, it also tries to connect to the same default as server unless you provide server address specifically.
+
+The server also provides some [Prometheus](https://prometheus.io/) metrics you can scrape on `your_ip:9090/metrics`. This will allow you to monitor number of messages processed by the chat app, same as number of active clients and all the client over the runtime of the server.
+
+# Requirements for this homework ;)
+
 In this assignment, you will add monitoring capabilities to the server part of your chat application using Prometheus. Monitoring is a crucial aspect of maintaining and understanding the health and performance of applications, especially in production environments.
 Description:
 
