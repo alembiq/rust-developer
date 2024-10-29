@@ -16,4 +16,5 @@ then
 
     # return to current directiry
     cd $HERE
+    grep -R "TODO\|FIXME"
 fi

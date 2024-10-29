@@ -26,12 +26,14 @@
 [17](https://www.dropbox.com/scl/fi/m182zj2hjvn95dckx3616/Lecture-17.MP4?rlkey=9k5f1qub18fkme81v6x1jzozk&st=pg3833ad&dl=0&authuser=0)
 [18](https://www.dropbox.com/scl/fi/zglhfknjwa39ywefwjox7/Lecture-18.MP4?rlkey=fmb6j1fmzk1zr1imyxbrivipr&st=iutxkn02&dl=0&authuser=0)
 [19](https://www.dropbox.com/scl/fi/of3f02n3xdcuwfostpciu/Lecture-19.MP4?rlkey=068dvc8udx5nd6508s04j2xvw&st=88l3kw9v&dl=0&authuser=0)
- 20
+[20](https://www.dropbox.com/scl/fi/kdgbt0czayjlrb4wpgv7o/Lecture-20.MP4?rlkey=xh0piq627tp8y7cwsgy540krz&st=zxdt5m9v&dl=0&authuser=0)
 
 - **DevStreams**:
 [1](https://www.dropbox.com/scl/fi/t7wfwubrl0361bjwxd5vx/DevStream-1.MP4?rlkey=4i319jzky1eqa3omcbpziuqum&st=t93zhcji&dl=0&authuser=0)
 [2](https://www.dropbox.com/scl/fi/n8mk9lfylmgtpfnnr15lr/DevStream-2.MP4?rlkey=3ixyjsujkif074729ttavj4l8&st=c1c3hfu7&dl=0&authuser=0)
- 3
+[3](https://www.dropbox.com/scl/fi/bargk0pxab2eresz0tfxg/Lecture-20.MP4?rlkey=2nx76x1l6zi5rwoesbtrxmkmm&st=ail37bsq&dl=0&authuser=0)
+[4](https://www.dropbox.com/scl/fi/32m0lom4p6w5yrolvhb5d/DevStream-3.MP4?rlkey=qabo45o5svtfowgyfdfqyi9h0&st=6zgyvq33&dl=0&authuser=0)
+[5](https://www.dropbox.com/scl/fi/hoh6215878hk7flvho7lz/DevStream-5.MP4?authuser=0&rlkey=ok4ia8gdl4zjaih3en2gh0d57&e=1&st=164q1bws&dl=0)
 
 #### Classmates homeworks ;)
 - [abergasov](https://github.com/abergasov/rd_rust)
